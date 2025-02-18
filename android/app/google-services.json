@@ -7,26 +7,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:267593015422:android:6c5a4b86202a77ee9ab82f",
-        "android_client_info": {
-          "package_name": "com.example.technovation2025"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDmFYJ3z6JrNc7LO8ls3xXfU8mGOrxKDco"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:267593015422:android:358ab013fa5ca6f49ab82f",
+        "mobilesdk_app_id": "1:267593015422:android:f572c64b84cb878c9ab82f",
         "android_client_info": {
           "package_name": "com.example.technovation_project_2025"
         }

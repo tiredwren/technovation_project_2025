@@ -1,16 +1,13 @@
-# technovation_project_2025
+## Running the app
 
-A new Flutter project.
+Before running the app:
+* Get an API key from [ai.google.dev](ai.google.dev).
+* Create a Firebase project, and install the Flutter Firebase CLI, and configure the platforms that you want to run this app on. You can find instructions by following [steps 2-4 of the Get to know Firebase for Flutter](https://firebase.google.com/codelabs/firebase-get-to-know-flutter?hl=en#2) codelab.
 
-## Getting Started
+Then, pass the API key in with dart define when running the app:
 
-This project is a starting point for a Flutter application.
+```bash
+flutter run --dart-define=API_KEY=AIzaSyDG-yl0KksIJSakn1Tgl99auNUoiuT4Oyg
+```
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
