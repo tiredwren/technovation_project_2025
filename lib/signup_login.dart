@@ -1,3 +1,4 @@
+import 'package:ai_recipe_generation/generate_recipes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_login/flutter_login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,20 +17,28 @@ class _SignupLoginState extends State<SignupLogin> {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: data.name, password: data.password);
-      return null; // successfully logged in
+      Navigator.pushReplacement( //successfully logged in
+        context,
+        MaterialPageRoute(builder: (context) => GenerateRecipes()),
+      );
     } on FirebaseAuthException catch (e) {
       return e.message; // return error message
     }
+    return null;
   }
 
   Future<String?> _onSignup(SignupData data) async {
     try {
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: data.name!, password: data.password!);
-      return null; // successfully signed-up
+      Navigator.pushReplacement(// successfully signed up
+        context,
+        MaterialPageRoute(builder: (context) => GenerateRecipes()),
+      );
     } on FirebaseAuthException catch (e) {
       return e.message; // return error message
     }
+    return null;
   }
 
   Future<String?> _onRecoverPassword(String email) async {
