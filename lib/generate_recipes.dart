@@ -1,4 +1,6 @@
+import 'package:ai_recipe_generation/navigation/bottom_nav.dart';
 import 'package:flutter/material.dart';
+import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +14,11 @@ class GenerateRecipes extends StatefulWidget {
 class _GenerateRecipesState extends State<GenerateRecipes> {
   final List<String> ingredients = ['Tomato', 'Cheese', 'Lettuce', 'Chicken', 'Onion', 'Garlic', 'Beef', 'Tofu'];
   final List<String> allergies = ['Peanuts', 'Dairy', 'Gluten', 'Soy', 'Seafood', 'Eggs', 'Tree Nuts'];
+  final List<IconData> _icons = [
+    Icons.home,
+    Icons.favorite_border,
+    Icons.emoji_food_beverage_outlined,
+  ];
 
   List<bool> selectedIngredients = List.filled(8, false);
   List<bool> selectedAllergies = List.filled(7, false);
@@ -63,7 +70,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
         - Protein: XX g
     ''';
 
-    final apiKey = 'API_KEY (replace when running)';
+    final apiKey = 'AIzaSyB2GuyqfYXxqLdPFUjjhSufjJ6AMa8MLw0';
     final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$apiKey');
 
     try {
@@ -99,11 +106,6 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200], // background color
-      appBar: AppBar(
-        title: Text('Generate Recipe', style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.blueAccent,
-      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
         child: Column(
@@ -150,13 +152,13 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
               child: ElevatedButton(
                 onPressed: generateRecipe,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: Color(0xFFbc6c25),
                   padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
                 ),
-                child: Text('Generate Recipe', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text('Generate Recipe', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFfefae0))),
               ),
             ),
           ],
@@ -171,7 +173,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
       padding: const EdgeInsets.only(bottom: 10.0),
       child: Text(
         title,
-        style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+        style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFbc6c25)),
       ),
     );
   }
@@ -189,7 +191,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
           return CheckboxListTile(
             title: Text(items[index], style: GoogleFonts.poppins(fontSize: 16)),
             value: selections[index],
-            activeColor: Colors.blueAccent,
+            activeColor: Color(0xFFbc6c25),
             onChanged: (bool? value) {
               setState(() {
                 selections[index] = value!;

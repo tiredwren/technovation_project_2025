@@ -1,4 +1,6 @@
 import 'package:ai_recipe_generation/generate_recipes.dart';
+import 'package:ai_recipe_generation/home.dart';
+import 'package:ai_recipe_generation/navigation/bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_login/flutter_login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,7 +21,7 @@ class _SignupLoginState extends State<SignupLogin> {
           email: data.name, password: data.password);
       Navigator.pushReplacement( //successfully logged in
         context,
-        MaterialPageRoute(builder: (context) => GenerateRecipes()),
+        MaterialPageRoute(builder: (context) => HomePage()),
       );
     } on FirebaseAuthException catch (e) {
       return e.message; // return error message
