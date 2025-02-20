@@ -7,6 +7,7 @@ environment:
   sdk: ^3.5.0
 
 dependencies:
+  google_nav_bar: ^5.0.7
   async: ^2.11.0
   camera: ^0.10.5+9
   cloud_firestore: ^5.6.3
