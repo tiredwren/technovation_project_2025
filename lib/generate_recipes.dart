@@ -1,6 +1,5 @@
-import 'package:ai_recipe_generation/navigation/bottom_nav.dart';
+import 'package:ai_recipe_generation/recipes.dart';
 import 'package:flutter/material.dart';
-import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,32 +13,29 @@ class GenerateRecipes extends StatefulWidget {
 class _GenerateRecipesState extends State<GenerateRecipes> {
   final List<String> ingredients = ['Tomato', 'Cheese', 'Lettuce', 'Chicken', 'Onion', 'Garlic', 'Beef', 'Tofu'];
   final List<String> allergies = ['Peanuts', 'Dairy', 'Gluten', 'Soy', 'Seafood', 'Eggs', 'Tree Nuts'];
-  final List<IconData> _icons = [
-    Icons.home,
-    Icons.favorite_border,
-    Icons.emoji_food_beverage_outlined,
-  ];
-
   List<bool> selectedIngredients = List.filled(8, false);
   List<bool> selectedAllergies = List.filled(7, false);
 
   String cuisineType = '';
   TextEditingController dietaryRestrictionsController = TextEditingController();
+  bool isLoading = false;
+  List<String> recipes = [];
 
   Future<void> generateRecipe() async {
+    setState(() {
+      isLoading = true;
+      recipes.clear();
+    });
+
     List<String> chosenIngredients = [];
     List<String> chosenAllergies = [];
 
     for (int i = 0; i < selectedIngredients.length; i++) {
-      if (selectedIngredients[i]) {
-        chosenIngredients.add(ingredients[i]);
-      }
+      if (selectedIngredients[i]) chosenIngredients.add(ingredients[i]);
     }
 
     for (int i = 0; i < selectedAllergies.length; i++) {
-      if (selectedAllergies[i]) {
-        chosenAllergies.add(allergies[i]);
-      }
+      if (selectedAllergies[i]) chosenAllergies.add(allergies[i]);
     }
 
     if (dietaryRestrictionsController.text.isNotEmpty) {
@@ -47,30 +43,32 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     }
 
     String prompt = '''
-    You are a world-traveling chef who creates unique recipes based on ingredients.
-    Recommend a recipe using:
+    You are a world-traveling chef creating multiple unique recipes.
+    Recommend 12 different recipes using:
     - Ingredients: ${chosenIngredients.join(", ")}
     - Allergies to avoid: ${chosenAllergies.join(", ")}
     - Cuisine preference: ${cuisineType.isNotEmpty ? cuisineType : "Any"}
-    
-    Format:
-      Title
-      Ingredients: 
-        - Ingredient1 (quantity)
-        - Ingredient2 (quantity)
-      Instructions: 
-        - Step1
-        - Step2
-      Cuisine Type
-      Serves: Number of servings
-      Nutrition:
-        - Calories: XX kcal
-        - Fat: XX g
-        - Carbs: XX g
-        - Protein: XX g
+
+    Format for each:
+    Title:
+    Ingredients:
+    - Ingredient1 (quantity)
+    - Ingredient2 (quantity)
+    Instructions:
+    - Step1
+    - Step2
+    Cuisine Type:
+    Serves: X
+    Nutrition:
+    - Calories: XX kcal
+    - Fat: XX g
+    - Carbs: XX g
+    - Protein: XX g
+
+    Separate each recipe with '###'
     ''';
 
-    final apiKey = 'AIzaSyB2GuyqfYXxqLdPFUjjhSufjJ6AMa8MLw0';
+    final apiKey = 'AIzaSyAeGlNea1cqf-s6iob8glos_8pxsDGlepo';
     final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$apiKey');
 
     try {
@@ -80,13 +78,22 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
         body: json.encode({'contents': [{'parts': [{'text': prompt}]}]}),
       );
 
+      print(response.body);
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        String recipeText = data['candidates'][0]['content']['parts'][0]['text'];
+        String responseText = data['candidates'][0]['content']['parts'][0]['text'];
+        List<String> generatedRecipes = responseText.split('###').map((r) => r.trim()).toList();
+
+        setState(() {
+          isLoading = false;
+        });
+
+        // Navigate to new page with recipes
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => RecipePage(recipe: recipeText),
+            builder: (context) => RecipeListPage(recipes: generatedRecipes),
           ),
         );
       } else {
@@ -98,6 +105,9 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
   }
 
   void _showError(String message) {
+    setState(() {
+      isLoading = false;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
@@ -106,68 +116,75 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionTitle('Select Ingredients'),
-            _buildCheckboxList(ingredients, selectedIngredients),
-            SizedBox(height: 20),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionTitle('Select Ingredients'),
+                _buildCheckboxList(ingredients, selectedIngredients),
+                SizedBox(height: 20),
 
-            _buildSectionTitle('Select Allergies'),
-            _buildCheckboxList(allergies, selectedAllergies),
-            SizedBox(height: 10),
+                _buildSectionTitle('Select Allergies'),
+                _buildCheckboxList(allergies, selectedAllergies),
+                SizedBox(height: 10),
 
-            // for extra dietary restrictions
-            TextField(
-              controller: dietaryRestrictionsController,
-              decoration: InputDecoration(
-                labelText: 'Other Allergies/Dietary Restrictions',
-                border: OutlineInputBorder(),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-            ),
-            SizedBox(height: 20),
-
-            // cuisine type
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Preferred Cuisine Type',
-                border: OutlineInputBorder(),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              onChanged: (value) {
-                setState(() {
-                  cuisineType = value;
-                });
-              },
-            ),
-            SizedBox(height: 20),
-
-            // generate recipe button
-            Center(
-              child: ElevatedButton(
-                onPressed: generateRecipe,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFbc6c25),
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+                TextField(
+                  controller: dietaryRestrictionsController,
+                  decoration: InputDecoration(
+                    labelText: 'Other Allergies/Dietary Restrictions',
+                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
                 ),
-                child: Text('Generate Recipe', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFfefae0))),
-              ),
+                SizedBox(height: 20),
+
+                TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Preferred Cuisine Type',
+                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      cuisineType = value;
+                    });
+                  },
+                ),
+                SizedBox(height: 20),
+
+                Center(
+                  child: ElevatedButton(
+                    onPressed: generateRecipe,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFFbc6c25),
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    child: Text('Generate Recipes', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFfefae0))),
+                  ),
+                ),
+                SizedBox(height: 20),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          if (isLoading)
+            Container(
+              color: Colors.white.withOpacity(0.8),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+        ],
       ),
     );
   }
 
-  // to create section titles
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10.0),
@@ -178,7 +195,6 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     );
   }
 
-  // to create a list of checkboxes
   Widget _buildCheckboxList(List<String> items, List<bool> selections) {
     return Container(
       decoration: BoxDecoration(
@@ -203,3 +219,4 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     );
   }
 }
+
