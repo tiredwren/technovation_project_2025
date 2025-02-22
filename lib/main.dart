@@ -1,5 +1,4 @@
 import 'package:ai_recipe_generation/generate_recipes.dart';
-import 'package:ai_recipe_generation/recipe.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:ai_recipe_generation/signup_login.dart';

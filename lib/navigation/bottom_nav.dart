@@ -14,7 +14,7 @@ class BottomNavigation extends StatelessWidget {
         color: Color(0xFF283618),
         child: Padding(
           padding: EdgeInsets.symmetric(
-              horizontal: 15,
+              horizontal: 50,
               vertical: 20),
           child: GNav(
               backgroundColor: Color(0xFF283618),

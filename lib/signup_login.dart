@@ -1,6 +1,5 @@
 import 'package:ai_recipe_generation/generate_recipes.dart';
 import 'package:ai_recipe_generation/home.dart';
-import 'package:ai_recipe_generation/navigation/bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_login/flutter_login.dart';
 import 'package:firebase_auth/firebase_auth.dart';

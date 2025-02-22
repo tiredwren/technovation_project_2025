@@ -1,3 +1,4 @@
+import 'package:ai_recipe_generation/eco-scan.dart';
 import 'package:ai_recipe_generation/generate_recipes.dart';
 import 'package:ai_recipe_generation/navigation/bottom_nav.dart';
 import 'package:ai_recipe_generation/recipe.dart';
@@ -44,7 +45,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   // pages
   final List<Widget> _pages = [
     GenerateRecipes(),
-    SignupLogin(),
+    SustainabilityScanner(),
   ];
 
   @override

@@ -52,10 +52,14 @@ class RecipePage extends StatelessWidget {
       }
     }
 
+    String cleanText(String text) {
+      return text.replaceAll('*', '').trim();
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        title: Text(title, style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold)),
+        title: Text(cleanText(title), style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.blueAccent,
       ),
       body: Padding(
@@ -71,10 +75,10 @@ class RecipePage extends StatelessWidget {
               _buildList(instructions),
               SizedBox(height: 10),
               _buildSectionTitle('Cuisine Type'),
-              Text(cuisineType, style: GoogleFonts.poppins(fontSize: 16)),
+              Text(cleanText(cuisineType), style: GoogleFonts.poppins(fontSize: 16)),
               SizedBox(height: 10),
               _buildSectionTitle('Serving Size'),
-              Text(serves, style: GoogleFonts.poppins(fontSize: 16)),
+              Text(cleanText(serves), style: GoogleFonts.poppins(fontSize: 16)),
               SizedBox(height: 10),
               _buildSectionTitle('Nutrition Facts'),
               _buildList(nutrition),
