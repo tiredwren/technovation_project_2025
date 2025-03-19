@@ -2,6 +2,7 @@ import 'package:ai_recipe_generation/eco-scan.dart';
 import 'package:ai_recipe_generation/generate_recipes.dart';
 import 'package:ai_recipe_generation/navigation/bottom_nav.dart';
 import 'package:ai_recipe_generation/recipe.dart';
+import 'package:ai_recipe_generation/scanner.dart';
 import 'package:ai_recipe_generation/signup_login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -28,12 +29,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final List<IconData> _icons = [
     Icons.shopping_cart,
     Icons.emoji_food_beverage_outlined,
+    Icons.camera
   ];
 
   // Define labels for tabs
   final List<String> _labels = [
-    'Shop',
-    'Saved',
+    'fridge',
+    'scan',
+    'input'
   ];
 
   void navigateBottomBar(int index) {
@@ -46,6 +49,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final List<Widget> _pages = [
     GenerateRecipes(),
     SustainabilityScanner(),
+    GeminiImageProcessor()
+    //ReceiptScannerScreen()
   ];
 
   @override
@@ -69,7 +74,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
         ],
       ),
-      backgroundColor: Color(0xFFfefae0),
+      backgroundColor: Color(0xFFf1faee),
       body: _pages[_selectedIndex], // display the selected page
       bottomNavigationBar: BottomNavigation(
         onTabChange: navigateBottomBar,

@@ -1,4 +1,4 @@
-// Microsoft Visual C++ generated resource script.
+// Microsoft Visual C++ generated resource.dart script.
 //
 #pragma code_page(65001)
 #include "resource.h"
@@ -6,7 +6,7 @@
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
 //
-// Generated from the TEXTINCLUDE 2 resource.
+// Generated from the TEXTINCLUDE 2 resource.dart.
 //
 #include "winres.h"
 
@@ -27,7 +27,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 1 TEXTINCLUDE
 BEGIN
-    "resource.h\0"
+    "resource.dart.h\0"
 END
 
 2 TEXTINCLUDE
@@ -113,7 +113,7 @@ END
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
-// Generated from the TEXTINCLUDE 3 resource.
+// Generated from the TEXTINCLUDE 3 resource.dart.
 //
 
 

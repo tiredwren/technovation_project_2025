@@ -57,10 +57,13 @@ class RecipePage extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Color(0xFFf1faee),
       appBar: AppBar(
-        title: Text(cleanText(title), style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.blueAccent,
+        title: Text(
+            cleanText(title),
+            style: GoogleFonts.poppins(
+                fontSize: 22,)),
+        backgroundColor: Color(0xFF283618),
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
@@ -94,7 +97,10 @@ class RecipePage extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Text(
         title,
-        style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+        style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFFbc6c25)),
       ),
     );
   }

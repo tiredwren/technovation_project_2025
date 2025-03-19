@@ -1,4 +1,4 @@
-import 'package:ai_recipe_generation/recipes.dart';
+import 'package:ai_recipe_generation/recipes_list.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -68,8 +68,15 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     Separate each recipe with '###'
     ''';
 
-    final apiKey = 'AIzaSyAeGlNea1cqf-s6iob8glos_8pxsDGlepo';
-    final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$apiKey');
+
+
+    final apiKey = 'AIzaSyCM8ZHUXiiC2_Pe4L6x_h4q714fgqDm6cY';
+    final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=$apiKey');
+
+    final response = await http.get(
+      Uri.parse("https://generativelanguage.googleapis.com/v1/models?key=${apiKey}"),
+    );
+    print(response.body);
 
     try {
       final response = await http.post(

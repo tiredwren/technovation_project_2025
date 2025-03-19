@@ -9,7 +9,7 @@ class RecipeListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Filter the recipes to include only those with a valid title
+    // filter the recipes to include only those with a valid title
     List<String> validRecipes = recipes.where((recipe) {
       List<String> lines = recipe.split('\n');
       return lines.isNotEmpty && lines[0].startsWith('Title:');
@@ -20,11 +20,13 @@ class RecipeListPage extends StatelessWidget {
         title: Text("Generated Recipes", style: TextStyle(color: Color(0xFFfefae0))),
         backgroundColor: Color(0xFF283618),
       ),
-      backgroundColor: Color(0xFFfefae0),
+      backgroundColor: Color(0xFFf1faee),
       body: validRecipes.isEmpty
-          ? Center(child: Text("No valid recipes available.", style: GoogleFonts.poppins(fontSize: 18)))
+          ? Center(child: Text(
+          "no valid recipes available; please try again with different inputs!.",
+          style: GoogleFonts.poppins(fontSize: 18)))
           : ListView.builder(
-        padding: EdgeInsets.all(16.0),
+        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24),
         itemCount: validRecipes.length,
         itemBuilder: (context, index) {
           List<String> lines = validRecipes[index].split('\n');
@@ -35,10 +37,13 @@ class RecipeListPage extends StatelessWidget {
             margin: EdgeInsets.symmetric(vertical: 8),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             child: ListTile(
-              title: Text(title, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-              trailing: Icon(Icons.arrow_forward, color: Colors.blueAccent),
+              title: Text(
+                  title, style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold)),
+              trailing: Icon(Icons.arrow_forward, color: Color(0xFF606c38)),
               onTap: () {
-                // Navigate to the RecipePage with the selected recipe
+                // navigate to RecipePage with the selected recipe
                 Navigator.push(
                   context,
                   MaterialPageRoute(

@@ -1,176 +1,101 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_ml_kit/google_ml_kit.dart';  // For text recognition
-import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart'; // For OCR using Tesseract (alternative/backup)
+import 'package:google_generative_ai/google_generative_ai.dart';
 
-void main() {
-  runApp(MyApp());
+class GeminiImageProcessor extends StatefulWidget {
+  @override
+  _GeminiImageProcessorState createState() => _GeminiImageProcessorState();
 }
 
-class MyApp extends StatelessWidget {
+class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
+  final String apiKey = 'AIzaSyAeGlNea1cqf-s6iob8glos_8pxsDGlepo';
+  late final GenerativeModel _model;
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
+  final TextEditingController _textController = TextEditingController();
+
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Receipt Scanner',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-      ),
-      home: ReceiptScannerScreen(),
+  void initState() {
+    super.initState();
+    _model = GenerativeModel(
+      model: 'gemini-2.0-flash',
+      apiKey: apiKey,
     );
   }
-}
-
-class ReceiptScannerScreen extends StatefulWidget {
-  @override
-  _ReceiptScannerScreenState createState() => _ReceiptScannerScreenState();
-}
-
-class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
-  File? _image;
-  String _extractedText = 'No text extracted yet.';
-  List<String> _products = [];
-  bool _isLoading = false;
 
   Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await ImagePicker().pickImage(source: source);
-
-    setState(() {
-      if (pickedFile != null) {
-        _image = File(pickedFile.path);
-        _extractedText = 'Extracting text...';  // Reset and indicate loading
-        _products = [];
-        _isLoading = true;
-        _extractTextFromImage();
-      } else {
-        print('No image selected.');
-      }
-    });
-  }
-
-
-  // Using Google ML Kit for OCR (preferred)
-  Future<void> _extractTextFromImage() async {
-    if (_image == null) return;
-
-    final inputImage = InputImage.fromFile(_image!);
-    final textRecognizer = GoogleMlKit.vision.textRecognizer();
-
-    try {
-      final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+    final pickedFile = await _picker.pickImage(source: source);
+    if (pickedFile != null) {
       setState(() {
-        _extractedText = recognizedText.text;
-        _products = _extractProducts(_extractedText);
+        _imageFile = File(pickedFile.path);
+        _textController.text = "Processing image...";
       });
-
-    } catch (e) {
-      print("Error using Google ML Kit: $e");
-      // Fallback to Tesseract if ML Kit fails
-      _extractTextFromImageTesseract(); // Call Tesseract OCR
-    } finally {
-      await textRecognizer.close();
-      setState(() {
-        _isLoading = false;
-      });
+      _processImage(_imageFile!);
     }
   }
 
-
-  // Using Tesseract OCR as a fallback
-  Future<void> _extractTextFromImageTesseract() async {
-    if (_image == null) return;
-
+  Future<void> _processImage(File imageFile) async {
     try {
-      String tessResult = await FlutterTesseractOcr.extractText(_image!.path);
+      final imageBytes = await imageFile.readAsBytes();
+      final content = [
+        Content.multi([
+          TextPart("""extract the text in this image. this is a receipt, 
+          so ensure the extracted text is logical. don't include any text 
+          that isn't in the uploaded image."""),
+          DataPart('image/jpeg', imageBytes),
+        ])
+      ];
+
+      final response = await _model.generateContent(content);
       setState(() {
-        _extractedText = tessResult;
-        _products = _extractProducts(_extractedText);
+        _textController.text = response.text ?? 'No text extracted.';
       });
     } catch (e) {
-      print("Error using Tesseract OCR: $e");
       setState(() {
-        _extractedText = "Error extracting text. Please try another image or ensure text is clear.";
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
+        _textController.text = 'Error processing image: $e';
       });
     }
   }
-
-
-  // Basic product extraction logic (improve this!)
-  List<String> _extractProducts(String text) {
-    List<String> products = [];
-    // This is a VERY basic implementation.  You'll need to improve it!
-    // Look for lines that are likely to be product names (e.g., not "TOTAL", "SUBTOTAL", etc.)
-    // Use regular expressions or other techniques to refine this.
-    for (String line in text.split('\n')) {
-      line = line.trim();
-      if (line.isNotEmpty &&
-          !line.startsWith('TOTAL') &&
-          !line.startsWith('SUBTOTAL') &&
-          !line.startsWith('TAX') &&
-          !line.contains(':') &&
-          !line.contains(RegExp(r'[0-9]')) // Avoid lines with numbers (price).  Be careful about product names with numbers.
-      ) {
-        products.add(line);
-      }
-    }
-    return products;
-  }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Receipt Scanner'),
-      ),
+      appBar: AppBar(title: const Text("Gemini Image Processor")),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ElevatedButton(
-              onPressed: () => _pickImage(ImageSource.camera),
-              child: const Text('Take a Photo'),
-            ),
-            ElevatedButton(
-              onPressed: () => _pickImage(ImageSource.gallery),
-              child: const Text('Choose from Gallery'),
-            ),
-            if (_image != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Image.file(
-                  _image!,
-                  height: 200,
-                  fit: BoxFit.contain,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _imageFile != null
+                    ? Image.file(_imageFile!, height: 200)
+                    : const Icon(Icons.image, size: 100, color: Colors.grey),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _textController,
+                  maxLines: null,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: "Extracted Text",
+                  ),
                 ),
-              ),
-            const SizedBox(height: 16),
-            if (_isLoading)
-              const Center(child: CircularProgressIndicator())
-            else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Extracted Text:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(_extractedText),
-                  const SizedBox(height: 16),
-                  const Text('Products:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  if (_products.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: _products.map((product) => Text('- $product')).toList(),
-                    )
-                  else
-                    const Text('No products found.'),
-                ],
-              ),
-          ],
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () => _pickImage(ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text("Pick from Gallery"),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  onPressed: () => _pickImage(ImageSource.camera),
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text("Take a Photo"),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
