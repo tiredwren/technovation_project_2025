@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'analyze.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 class SustainabilityScanner extends StatefulWidget {
   @override
@@ -8,75 +11,55 @@ class SustainabilityScanner extends StatefulWidget {
 }
 
 class _SustainabilityScannerState extends State<SustainabilityScanner> {
-  TextEditingController ingredientsController = TextEditingController();
-  String? result;
+  final String apiKey = 'AIzaSyCM8ZHUXiiC2_Pe4L6x_h4q714fgqDm6cY';
+  late final GenerativeModel _model;
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
+  final TextEditingController _textController = TextEditingController();
   bool isLoading = false;
 
-  Future<void> analyzeIngredients() async {
-    if (ingredientsController.text.isEmpty) return;
-    setState(() => isLoading = true);
+  @override
+  void initState() {
+    super.initState();
+    _model = GenerativeModel(
+      model: 'gemini-1.5-pro',
+      apiKey: apiKey,
+    );
+  }
 
-    String apiKey = 'AIzaSyAeGlNea1cqf-s6iob8glos_8pxsDGlepo';
-    final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$apiKey');
+  Future<void> _pickImage(ImageSource source) async {
+    final pickedFile = await _picker.pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+        _textController.text = "Processing image...";
+      });
+      _processImage(_imageFile!);
+    }
+  }
 
-    Map<String, dynamic> requestBody = {
-      "contents": [
-        {
-          "parts": [
-            {
-              "text": """
-              Analyze the following list of food ingredients for sustainability based on:
-              - Carbon footprint
-              - Deforestation impact
-              - Water usage
-              - Ethical sourcing
-              - Processing level
-              
-              Assign a sustainability score from 0 to 100, where 100 is the most sustainable. Provide a brief justification.
-              
-              Ingredients: ${ingredientsController.text}
-              
-              Respond in JSON format: {"score": number, "justifications": ["reason1", "reason2", ...]}.
-              """
-            }
-          ]
-        }
-      ]
-    };
-
+  Future<void> _processImage(File imageFile) async {
     try {
-      var response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
-      );
+      final imageBytes = await imageFile.readAsBytes();
+      final content = [
+        Content.multi([
+          TextPart("""Extract the text in this image. This is a list of product ingredients, 
+          so ensure the extracted text is logical. Don't include any text 
+          that isn't in the uploaded image, like 'here's a list of the extracted ingredients
+          from the provided page'"""),
+          DataPart('image/jpeg', imageBytes),
+        ])
+      ];
 
-      print("Response body: ${response.body}");
+      final response = await _model.generateContent(content);
+      String extractedText = response.text ?? 'No text extracted.';
 
-      if (response.statusCode == 200) {
-        var data = jsonDecode(response.body);
-
-        if (data.containsKey("candidates")) {
-          setState(() {
-            result = data["candidates"][0]["content"]["parts"][0]["text"];
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            result = "Error: Unexpected API response format.";
-            isLoading = false;
-          });
-        }
-      } else {
-        setState(() {
-          result = "Error: ${response.statusCode} - ${response.body}";
-          isLoading = false;
-        });
-      }
+      setState(() {
+        _textController.text = extractedText;
+      });
     } catch (e) {
       setState(() {
-        result = "Error: $e";
-        isLoading = false;
+        _textController.text = 'Error processing image: $e';
       });
     }
   }
@@ -84,24 +67,53 @@ class _SustainabilityScannerState extends State<SustainabilityScanner> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Sustainability Scanner")),
+      appBar: AppBar(title: const Text("Sustainability Scanner")),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
             children: [
+              _imageFile != null
+                  ? Image.file(_imageFile!, height: 200)
+                  : const Icon(Icons.image, size: 100, color: Colors.grey),
+              const SizedBox(height: 20),
               TextField(
-                controller: ingredientsController,
-                decoration: InputDecoration(labelText: "Enter Ingredients"),
-                maxLines: 3,
+                controller: _textController,
+                maxLines: null,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: "Extracted Text",
+                ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () => _pickImage(ImageSource.gallery),
+                icon: const Icon(Icons.photo_library),
+                label: const Text("Pick from Gallery"),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                onPressed: () => _pickImage(ImageSource.camera),
+                icon: const Icon(Icons.camera_alt),
+                label: const Text("Take a Photo"),
+              ),
+              const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: analyzeIngredients,
-                child: isLoading ? CircularProgressIndicator() : Text("Analyze"),
+                onPressed: _imageFile != null
+                    ? () {
+                  // Navigate to the analysis page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SustainabilityAnalysisPage(
+                        ingredients: _textController.text,
+                      ),
+                    ),
+                  );
+                }
+                    : null, // Disable button if no image has been uploaded
+                child: const Text("Analyze Sustainability"),
               ),
-              SizedBox(height: 20),
-              result != null ? Text("Result: $result") : Container(),
             ],
           ),
         ),
