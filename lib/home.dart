@@ -7,6 +7,7 @@ import 'package:ai_recipe_generation/signup_login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({super.key});
@@ -60,7 +61,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         automaticallyImplyLeading: false,
         title: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 25.0),
-          child: Text("App Name", style: TextStyle(color: Color(0xFFfefae0)),),
+          child: Text("EcoPlate", style: GoogleFonts.poppins(color: Color(0xFFfefae0)),),
         ),
         backgroundColor: Color(0xFF283618),
         actions: [
