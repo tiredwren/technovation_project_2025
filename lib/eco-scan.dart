@@ -67,7 +67,7 @@ class _SustainabilityScannerState extends State<SustainabilityScanner> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sustainability Scanner")),
+      appBar: AppBar(title: const Text("")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -82,7 +82,7 @@ class _SustainabilityScannerState extends State<SustainabilityScanner> {
                 maxLines: null,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: "Extracted Text",
+                  labelText: "ingredients list (edit as necessary)",
                 ),
               ),
               const SizedBox(height: 20),

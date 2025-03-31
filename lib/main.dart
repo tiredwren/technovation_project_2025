@@ -2,6 +2,7 @@ import 'package:ai_recipe_generation/generate_recipes.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:ai_recipe_generation/signup_login.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
 
@@ -20,6 +21,18 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: Color(0xFFbc6c25),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            iconColor: Color(0xFFfefae0),
+            foregroundColor: Color(0xFFfefae0),
+            textStyle: GoogleFonts.poppins(fontSize: 18, color: const Color(0xFFfefae0)),
+            backgroundColor: const Color(0xFFbc6c25),
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50),
+            )
+          )
+        )
       ),
       home: SignupLogin(), // start with signup/login page
       routes: {
