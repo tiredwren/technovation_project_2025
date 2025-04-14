@@ -23,8 +23,13 @@ class BottomNavigation extends StatelessWidget {
               tabBackgroundColor: Color(0xFF606c38),
               gap: 5,
               padding: EdgeInsets.all(16),
-              onTabChange: (value) => onTabChange!(value),
-              tabs: List.generate(
+              onTabChange: (value) {
+                if (onTabChange != null) {
+                  print("Tab index changed: $value");
+                  onTabChange!(value);
+                }
+              },
+            tabs: List.generate(
               numberOfTabs,
                   (index) => GButton(
                   icon: icons[index],  // use icons from the list (more dynamic)
