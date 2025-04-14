@@ -6,9 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
+import 'home.dart';
 import 'recipe.dart';
 
 class GenerateRecipes extends StatefulWidget {
+  final void Function(List<String>)? onRecipesGenerated;
+
+  GenerateRecipes({this.onRecipesGenerated});
   @override
   _GenerateRecipesState createState() => _GenerateRecipesState();
 }
@@ -39,6 +43,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
         for (var doc in snapshot.docs) {
           fetchedIngredients.add(doc.id); // Document ID is the ingredient name
         }
+        if (!mounted) return;
         setState(() {
           ingredients = fetchedIngredients.toSet().toList();
           selectedIngredients = List.filled(ingredients.length, false);
@@ -57,6 +62,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
           final data = List<String>.from(doc['allergies']);
           fetchedAllergies.addAll(data.map((allergy) => allergy.toLowerCase())); // Convert to lowercase
         }
+        if (!mounted) return;
         setState(() {
           allergies = fetchedAllergies.toSet().toList();
           selectedAllergies = List.filled(allergies.length, false);
@@ -71,6 +77,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
   List<String> recipes = [];
 
   Future<void> generateRecipe() async {
+    if (!mounted) return;
     setState(() {
       isLoading = true;
       recipes.clear();
@@ -117,7 +124,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     Separate each recipe with '###'
     ''';
 
-    final apiKey = 'AIzaSyCM8ZHUXiiC2_Pe4L6x_h4q714fgqDm6cY';
+    final apiKey = 'AIzaSyATi56IvBnjGbZ5qhFOLtAPl7mf5owwrdI';
     final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=$apiKey');
 
     try {
@@ -134,19 +141,18 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
         String responseText = data['candidates'][0]['content']['parts'][0]['text'];
         List<String> generatedRecipes = responseText.split('###').map((r) => r.trim()).toList();
 
+        if (!mounted) return;
         setState(() {
           isLoading = false;
         });
 
-        // Navigate to new page with recipes
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RecipeListPage(recipes: generatedRecipes),
-          ),
-        );
+        if (widget.onRecipesGenerated != null) {
+          widget.onRecipesGenerated!(generatedRecipes); // list of strings
+        }
+        // navigate to new page with recipes
+        print(generatedRecipes);
       } else {
-        _showError('Error: ${response.body}');
+        _showError('error: ${response.body}');
       }
     } catch (e) {
       _showError('Error: $e');
@@ -154,6 +160,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     setState(() {
       isLoading = false;
     });
@@ -162,14 +169,14 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     );
   }
 
-  void inputIngredients(BuildContext context) {
-    print("image processing");
-    Navigator.push(
+  void inputIngredients() {
+    print("in input");
+    Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (context) => GeminiImageProcessor(),
-      ),
+      MaterialPageRoute(builder: (context) => const HomePage(initialTab: 2)),
+          (route) => false,
     );
+
   }
 
   void _showEditDialog(String ingredient, int index) {
@@ -224,6 +231,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
           .doc(ingredients[index]) // Use the ingredient name as the document ID
           .delete();
 
+      if (!mounted) return;
       setState(() {
         ingredients.removeAt(index);
         selectedIngredients.removeAt(index);
@@ -243,17 +251,17 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     String userId = user.uid;
 
     try {
-      // Get the document ID (the current ingredient name)
-      String currentIngredient = ingredients[index].toLowerCase(); // Make sure to use lowercase
+      // get current id name
+      String currentIngredient = ingredients[index].toLowerCase(); // lowercase to ensure all are grabbed
 
-      // Optionally, if you want to change the document ID itself, delete the old document and create a new one with the new ID
+      // change id name to store it as the updated ingredient name
       if (newIngredient.toLowerCase() != currentIngredient) {
         // Delete the old document
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userId)
             .collection('ingredients')
-            .doc(currentIngredient) // Current ingredient as old document ID
+            .doc(currentIngredient)
             .delete();
 
         // Add new ingredient as a new document
@@ -261,25 +269,26 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
             .collection('users')
             .doc(userId)
             .collection('ingredients')
-            .doc(newIngredient.toLowerCase()) // Use the new ingredient name as the document ID
+            .doc(newIngredient.toLowerCase()) // ingredient name = document id
             .set({
-          'timestamp': FieldValue.serverTimestamp(), // Set timestamp for new ingredient
+          'timestamp': FieldValue.serverTimestamp(), // timestamp to estimate expiration date
         });
       }
 
+      if (!mounted) return;
       setState(() {
-        // Update the local state with the new ingredient name
+        // update local state with the new ingredient name
         if (newIngredient.toLowerCase() != currentIngredient) {
           ingredients[index] = newIngredient; // Update the local state
         }
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ingredient updated')),
+        SnackBar(content: Text('ingredient updated')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating ingredient: $e')),
+        SnackBar(content: Text('error updating ingredient: $e')),
       );
     }
   }
@@ -287,101 +296,119 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "y o u r   f r i d g e",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+                color: const Color(0xFF283618),
+              ),
+            ),
+            const SizedBox(width: 10),
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: const Color(0xFF606C38),
+              child: IconButton(
+                icon: const Icon(Icons.add, color: Colors.white),
+                onPressed: () {
+                  debugPrint("add button pressed!");
+                  inputIngredients();
+                },
+              ),
+            ),
+          ],
+        ),
+        centerTitle: true,
+        backgroundColor: const Color(0xFFf1faee),
+      ),
+      backgroundColor: const Color(0xFFf1faee),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(padding: EdgeInsets.symmetric(vertical: 10)),
-            SizedBox(
-              width: MediaQuery.of(context).size.width * 0.8,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "y o u r    f r i d g e",
-                    style: GoogleFonts.poppins(fontSize: 24),
-                  ),
-                  const SizedBox(width: 20),
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Color(0xFF606C38),
-                    child: IconButton(
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      onPressed: () {
-                        debugPrint("Plus button pressed");
-                        inputIngredients(context);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10), // Adjust spacing
-
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSectionTitle('Select Ingredients'),
-                    _buildCheckboxList(ingredients, selectedIngredients),
+                    _buildCardWrapper(_buildCheckboxList(ingredients, selectedIngredients)),
                     const SizedBox(height: 20),
 
+                    if (isLoading)
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(12.0),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFbc6c25)),
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 20),
                     _buildSectionTitle('Other Specifications'),
-                    _buildCheckboxList(allergies, selectedAllergies),
-                    const SizedBox(height: 10),
+                    _buildCardWrapper(_buildCheckboxList(allergies, selectedAllergies)),
+                    const SizedBox(height: 16),
 
-                    TextField(
-                      controller: dietaryRestrictionsController,
-                      decoration: const InputDecoration(
-                        labelText: 'Other Allergies/Dietary Restrictions',
-                        border: OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Colors.white,
+                    _buildCardWrapper(
+                      TextField(
+                        controller: dietaryRestrictionsController,
+                        decoration: const InputDecoration(
+                          labelText: 'Other Allergies/Dietary Restrictions',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
-                    TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Preferred Cuisine Type',
-                        border: OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Colors.white,
+                    _buildCardWrapper(
+                      TextField(
+                        decoration: const InputDecoration(
+                          labelText: 'Preferred Cuisine Type',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        onChanged: (value) {
+                          if (!mounted) return;
+                          setState(() {
+                            cuisineType = value;
+                          });
+                        },
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          cuisineType = value;
-                        });
-                      },
                     ),
-                    const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
 
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Center(
-                child: SizedBox(
+              padding: const EdgeInsets.all(20.0),
+              child: SizedBox(
+                width: double.infinity,
+                child:
+                SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: generateRecipe,
-                    child: Text(
-                      'create recipes',
-                    ),
+                  onPressed: generateRecipe,
+                  child: const Text(
+                    'create recipes',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),
             ),
-
-            if (isLoading)
-              Container(
-                color: Colors.white.withOpacity(0.8),
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-          ],
+            )],
         ),
       ),
     );
@@ -396,6 +423,25 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
       ),
     );
   }
+
+  Widget _buildCardWrapper(Widget child) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
 
   Widget _buildCheckboxList(List<String> items, List<bool> selections) {
     return Container(
@@ -417,6 +463,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
                       Checkbox(
                         value: selections[index],
                         onChanged: (bool? value) {
+                          if (!mounted) return;
                           setState(() {
                             selections[index] = value!;
                           });

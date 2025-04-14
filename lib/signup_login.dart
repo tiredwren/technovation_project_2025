@@ -18,7 +18,7 @@ class _SignupLoginState extends State<SignupLogin> {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: data.name, password: data.password);
-      Navigator.pushReplacement( //successfully logged in
+      Navigator.pushReplacement( // successfully logged in
         context,
         MaterialPageRoute(builder: (context) => HomePage()),
       );
@@ -54,14 +54,39 @@ class _SignupLoginState extends State<SignupLogin> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FlutterLogin(
-        onLogin: _onLogin,
-        onSignup: _onSignup,
-        onRecoverPassword: _onRecoverPassword,
-        theme: LoginTheme(
-          primaryColor: Color(0xFF283618),
-          buttonTheme: LoginButtonTheme(backgroundColor: Color(0xFF606c38)),
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
+              ),
+              child: IntrinsicHeight(
+                child: FlutterLogin(
+                  onLogin: _onLogin,
+                  onSignup: _onSignup,
+                  onRecoverPassword: _onRecoverPassword,
+                  headerWidget: Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        height: 100,
+                      ),
+                    ),
+                  ),
+                  theme: LoginTheme(
+                    primaryColor: Color(0xFF283618),
+                    accentColor: Color(0xFFbc6c25),
+                    buttonTheme: LoginButtonTheme(
+                      backgroundColor: Color(0xFF606c38),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

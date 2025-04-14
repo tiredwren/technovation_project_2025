@@ -1,34 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:typed_data';
 
-class RecipePage extends StatelessWidget {
+class RecipePage extends StatefulWidget {
   final String recipe;
   RecipePage({required this.recipe});
 
   @override
-  Widget build(BuildContext context) {
-    List<String> lines = recipe.split('\n');
-    String title = lines.isNotEmpty ? lines[0].replaceAll('Title:', '') : 'Generated Recipe';
-    List<String> ingredients = [];
-    List<String> instructions = [];
-    String cuisineType = '';
-    String serves = '';
-    List<String> nutrition = [];
+  State<RecipePage> createState() => _RecipePageState();
+}
 
-    bool isIngredients = false;
-    bool isInstructions = false;
-    bool isNutrition = false;
+class _RecipePageState extends State<RecipePage> {
+  late String title;
+  String cuisineType = '';
+  String serves = '';
+  List<String> ingredients = [], instructions = [], nutrition = [];
+  Uint8List? aiImageBytes;
+  bool isLoadingImage = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _parseRecipe();
+    _fetchAIImage();
+  }
+
+  void _parseRecipe() {
+    List<String> lines = widget.recipe.split('\n');
+    title = lines.isNotEmpty ? lines[0].replaceAll('Title:', '').trim() : 'Generated Recipe';
+
+    bool isIngredients = false, isInstructions = false, isNutrition = false;
 
     for (String line in lines.skip(1)) {
       if (line.toLowerCase().contains('ingredients:')) {
-        isIngredients = true;
-        isInstructions = false;
-        isNutrition = false;
+        isIngredients = true; isInstructions = false; isNutrition = false;
         continue;
       } else if (line.toLowerCase().contains('instructions:')) {
-        isIngredients = false;
-        isInstructions = true;
-        isNutrition = false;
+        isIngredients = false; isInstructions = true; isNutrition = false;
         continue;
       } else if (line.toLowerCase().contains('cuisine type')) {
         cuisineType = line.replaceAll('Cuisine Type:', '').trim();
@@ -37,84 +49,145 @@ class RecipePage extends StatelessWidget {
         serves = line.replaceAll('Serves:', '').trim();
         continue;
       } else if (line.toLowerCase().contains('nutrition:')) {
-        isIngredients = false;
-        isInstructions = false;
-        isNutrition = true;
+        isIngredients = false; isInstructions = false; isNutrition = true;
         continue;
       }
 
-      if (isIngredients) {
-        ingredients.add(line.trim());
-      } else if (isInstructions) {
-        instructions.add(line.trim());
-      } else if (isNutrition) {
-        nutrition.add(line.trim());
-      }
+      if (isIngredients) ingredients.add(line.trim());
+      else if (isInstructions) instructions.add(line.trim());
+      else if (isNutrition) nutrition.add(line.trim());
     }
+  }
 
-    String cleanText(String text) {
-      return text.replaceAll('*', '').trim();
+  Future<void> _fetchAIImage() async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://your-cloud-function-url/generate-image'), // 👈 Replace with your Firebase function URL
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'prompt': title}),
+      );
+
+      final data = jsonDecode(response.body);
+      final base64 = data['image']; // The field must match what's returned by your function
+      final imageBytes = base64Decode(base64);
+
+      setState(() {
+        aiImageBytes = imageBytes;
+        isLoadingImage = false;
+      });
+    } catch (e) {
+      print('Image fetch error: $e');
+      setState(() => isLoadingImage = false);
     }
+  }
 
+  void _shareRecipe() {
+    Share.share(widget.recipe);
+  }
+
+  Future<void> _saveRecipe() async {
+    try {
+      await FirebaseFirestore.instance.collection('saved_recipes').add({
+        'title': title,
+        'ingredients': ingredients,
+        'instructions': instructions,
+        'cuisineType': cuisineType,
+        'serves': serves,
+        'nutrition': nutrition,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Recipe saved!')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving recipe')));
+    }
+  }
+
+  Widget _buildSectionCard(String heading, List<String> content) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Color(0xFFfffef2),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 8, offset: Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(heading, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFFbc6c25))),
+          const SizedBox(height: 8),
+          ...content.map((e) => Text(e, style: GoogleFonts.poppins(fontSize: 15))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(String label, String value) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Color(0xFFfffef2),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 8, offset: Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          Text("$label: ", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: Color(0xFFbc6c25))),
+          Expanded(child: Text(value, style: GoogleFonts.poppins(fontSize: 16))),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFf1faee),
       appBar: AppBar(
-        title: Text(
-            cleanText(title),
-            style: GoogleFonts.poppins(
-                fontSize: 22,)),
-        backgroundColor: Color(0xFF283618),
+        title: Text(title, style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(icon: Icon(Icons.share), onPressed: _shareRecipe),
+          IconButton(icon: Icon(Icons.bookmark), onPressed: _saveRecipe),
+        ],
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionTitle('Ingredients'),
-              _buildList(ingredients),
-              SizedBox(height: 10),
-              _buildSectionTitle('Instructions'),
-              _buildList(instructions),
-              SizedBox(height: 10),
-              _buildSectionTitle('Cuisine Type'),
-              Text(cleanText(cuisineType), style: GoogleFonts.poppins(fontSize: 16)),
-              SizedBox(height: 10),
-              _buildSectionTitle('Serving Size'),
-              Text(cleanText(serves), style: GoogleFonts.poppins(fontSize: 16)),
-              SizedBox(height: 10),
-              _buildSectionTitle('Nutrition Facts'),
-              _buildList(nutrition),
-            ],
-          ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            isLoadingImage
+                ? Center(child: CircularProgressIndicator())
+                : ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: aiImageBytes != null
+                  ? Image.memory(aiImageBytes!, height: 200, width: double.infinity, fit: BoxFit.cover)
+                  : Container(
+                height: 200,
+                width: double.infinity,
+                color: Colors.grey[300],
+                child: Icon(Icons.image, size: 60, color: Colors.grey[600]),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildSectionCard('🧂 Ingredients', ingredients),
+            _buildSectionCard('📋 Instructions', instructions),
+            _buildInfoTile('🍽 Cuisine Type', cuisineType),
+            _buildInfoTile('👨‍👩‍👧‍👦 Serving Size', serves),
+            _buildSectionCard('📊 Nutrition Facts', nutrition),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(
-        title,
-        style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFbc6c25)),
-      ),
-    );
-  }
-
-  Widget _buildList(List<String> items) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: items.map((item) => Padding(
-        padding: const EdgeInsets.only(bottom: 10.0),
-        child: Text(
-          '$item',
-          style: GoogleFonts.poppins(fontSize: 16),
-        ),
-      )).toList(),
     );
   }
 }

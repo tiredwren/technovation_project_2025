@@ -1,16 +1,19 @@
+import 'package:ai_recipe_generation/analyze.dart';
 import 'package:ai_recipe_generation/eco-scan.dart';
 import 'package:ai_recipe_generation/generate_recipes.dart';
 import 'package:ai_recipe_generation/navigation/bottom_nav.dart';
 import 'package:ai_recipe_generation/recipe.dart';
+import 'package:ai_recipe_generation/recipes_list.dart';
 import 'package:ai_recipe_generation/scanner.dart';
-import 'package:ai_recipe_generation/signup_login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({super.key});
+  final int initialTab;
+
+  const HomePage({Key? key, this.initialTab = 0}) : super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -23,65 +26,113 @@ void signUserOut() {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final user = FirebaseAuth.instance.currentUser!;
 
-  // for nav bar
-  int _selectedIndex = 0;
+  String? extractedIngredients;
+  List<String>? generatedRecipes;
+  String? chosenRecipe;
 
-  // Define icons for tabs
+  late int _selectedIndex;
+
   final List<IconData> _icons = [
     Icons.shopping_cart,
     Icons.emoji_food_beverage_outlined,
-    Icons.camera
   ];
 
-  // Define labels for tabs
   final List<String> _labels = [
     'fridge',
     'scan',
-    'input'
   ];
+
+  List<Widget> get _pages => [
+    GenerateRecipes(
+      onRecipesGenerated: (recipes) {
+        setState(() {
+          generatedRecipes = recipes.whereType<String>().toList();
+        });
+      },
+    ),
+    SustainabilityScanner(
+      onExtracted: (ingredients) {
+        setState(() {
+          extractedIngredients = ingredients;
+        });
+      },
+    ),
+    GeminiImageProcessor(),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialTab;
+    print("Initial tab: ${widget.initialTab}");
+  }
 
   void navigateBottomBar(int index) {
     setState(() {
       _selectedIndex = index;
+      extractedIngredients = null;
+      generatedRecipes = null;
     });
   }
 
-  // pages
-  final List<Widget> _pages = [
-    GenerateRecipes(),
-    SustainabilityScanner(),
-    GeminiImageProcessor()
-    //ReceiptScannerScreen()
-  ];
-
   @override
   Widget build(BuildContext context) {
+    Widget currentPage;
+
+    if (extractedIngredients != null) {
+      print("Extracted: $extractedIngredients");
+      currentPage = SustainabilityAnalysisPage(ingredients: extractedIngredients!);
+    } else if (generatedRecipes != null) {
+      print("Generated recipes: $generatedRecipes");
+      currentPage = RecipeListPage(
+        recipes: generatedRecipes!,
+        onRecipeChosen: (recipe) {
+          setState(() {
+            chosenRecipe = recipe;
+            print('recipe in home page: $chosenRecipe');
+          });
+        },
+      );
+      generatedRecipes = null;
+    } else if (chosenRecipe != null) {
+      print("Chosen recipe: $chosenRecipe");
+      currentPage = RecipePage(recipe: chosenRecipe!);
+    } else {
+      currentPage = _pages[_selectedIndex];
+    }
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0),
-          child: Text("EcoPlate", style: GoogleFonts.poppins(color: Color(0xFFfefae0)),),
+          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10),
+          child: Text(
+            "e c o p l a t e",
+            style: GoogleFonts.poppins(
+              color: const Color(0xFFfefae0),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
-        backgroundColor: Color(0xFF283618),
+        backgroundColor: const Color(0xFF283618),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 25.0),
             child: IconButton(
               onPressed: signUserOut,
-              icon: Icon(Icons.logout_rounded),
-              color: Color(0xFFfefae0),
+              icon: const Icon(Icons.logout_rounded),
+              color: const Color(0xFFfefae0),
             ),
           ),
         ],
       ),
-      backgroundColor: Color(0xFFf1faee),
-      body: _pages[_selectedIndex], // display the selected page
+      backgroundColor: const Color(0xFFf1faee),
+      body: currentPage,
       bottomNavigationBar: BottomNavigation(
         onTabChange: navigateBottomBar,
         labels: _labels,
         numberOfTabs: _icons.length,
-        icons: _icons, // pass icons to the bottom navigation bar
+        icons: _icons,
       ),
     );
   }

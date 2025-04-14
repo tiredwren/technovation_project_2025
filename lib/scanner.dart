@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:ai_recipe_generation/generate_recipes.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import './ingredients_list.dart';
+import 'home.dart';
 
 class GeminiImageProcessor extends StatefulWidget {
   @override
@@ -13,11 +15,14 @@ class GeminiImageProcessor extends StatefulWidget {
 }
 
 class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
-  final String apiKey = 'AIzaSyCM8ZHUXiiC2_Pe4L6x_h4q714fgqDm6cY';
+  final String apiKey = 'AIzaSyATi56IvBnjGbZ5qhFOLtAPl7mf5owwrdI';
   late final GenerativeModel _model;
   File? _imageFile;
+  bool _isTextNotEmpty = false;
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _textController = TextEditingController();
+
+  bool extracting = false;
 
   @override
   void initState() {
@@ -26,14 +31,23 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
       model: 'gemini-2.0-flash',
       apiKey: apiKey,
     );
+
+    _textController.addListener(() {
+      setState(() {
+        _isTextNotEmpty = _textController.text.trim().isNotEmpty;
+      });
+    });
   }
 
+
   Future<void> _pickImage(ImageSource source) async {
+
     final pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
       setState(() {
+        extracting = true;
         _imageFile = File(pickedFile.path);
-        _textController.text = "Processing image...";
+        _textController.text = "processing image...";
       });
       _processImage(_imageFile!);
     }
@@ -53,13 +67,15 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
 
       final response = await _model.generateContent(content);
       setState(() {
-        _textController.text = response.text ?? 'No ingredients extracted.';
+        _textController.text = response.text ?? 'no ingredients extracted.';
+        extracting = false;
       });
     } catch (e) {
       setState(() {
-        _textController.text = 'Error processing image: $e';
+        _textController.text = 'error processing image: $e';
       });
     }
+
   }
 
   void _saveIngredients() async {
@@ -68,7 +84,7 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
     // Check if extractedText is empty
     if (extractedText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No ingredients to save.")),
+        const SnackBar(content: Text("no ingredients to save.")),
       );
       return; // Exit the function early if there are no ingredients
     }
@@ -80,28 +96,30 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User not signed in!")),
+        const SnackBar(content: Text("user not signed in!")),
       );
       return;
     }
 
     String userId = user.uid;
 
-    // Iterate through each ingredient and add it as a separate document
+    // check through each ingredient and add it as a separate document
     for (String ingredient in ingredients) {
-      if (ingredient.isNotEmpty) { // Ensure that the ingredient is not empty
+      if (ingredient.isNotEmpty) { // ensure that the ingredient is not empty
         try {
           await FirebaseFirestore.instance
               .collection('users')
               .doc(userId)
               .collection('ingredients')
-              .doc(ingredient.toLowerCase()) // Use ingredient as document ID (in lowercase)
+              .doc(ingredient
+              .toLowerCase()) // use ingredient as document id (in lowercase)
               .set({
-            'timestamp': FieldValue.serverTimestamp(), // Add a timestamp field
+            'timestamp': FieldValue.serverTimestamp(),
+            // add a timestamp field (for expiration dates)
           });
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error saving ingredient: $e")),
+            SnackBar(content: Text("error saving ingredient: $e")),
           );
         }
       }
@@ -109,20 +127,26 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
 
     // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Ingredients saved to Firestore!")),
+      const SnackBar(content: Text("ingredients saved!")),
     );
 
-    // Navigate to IngredientsPage after saving
-    Navigator.push(
+    // navigate to main page after saving
+
+    Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => GenerateRecipes()),
+      MaterialPageRoute(builder: (context) => const HomePage(initialTab: 0)),
+          (route) => false,
     );
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Ingredient Scanner")),
+      appBar: AppBar(title: Text("i n p u t   i n g r e d i e n t s",
+        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 25),
+      ),
+      centerTitle: true,
+      ),
       body: SingleChildScrollView(
         child: Center(
           child: SizedBox(
@@ -155,31 +179,33 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
                 TextField(
                   controller: _textController,
                   maxLines: null,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: "extracted ingredients",
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: extracting
+                        ? "processing image..."
+                        : "ingredients list (edit as necessary)",
                   ),
                 ),
+                const SizedBox(height: 20),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: _saveIngredients,
+                    onPressed: _isTextNotEmpty ? _saveIngredients : null,
                     icon: const Icon(Icons.save),
                     label: const Text("save"),
                   ),
                 ),
-                const SizedBox(height: 20),
+
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.push(
+                    onPressed: () => Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => GenerateRecipes(),
-                      ),
+                      MaterialPageRoute(builder: (context) => const HomePage(initialTab: 0)),
+                          (route) => false,
                     ),
-                    child: const Text("cancel"),
+                      child: const Text("cancel"),
                   ),
                 ),
               ],

@@ -21,6 +21,10 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: Color(0xFFbc6c25),
+        textTheme: GoogleFonts.poppinsTextTheme(
+          Theme.of(context).textTheme,
+        ).copyWith(titleLarge: GoogleFonts.poppins(fontSize: 18, color: const Color(
+            0xff3a6b40))),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             iconColor: Color(0xFFfefae0),
