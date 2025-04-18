@@ -1,6 +1,6 @@
 import 'package:ai_recipe_generation/analyze.dart';
 import 'package:ai_recipe_generation/eco-scan.dart';
-import 'package:ai_recipe_generation/generate_recipes.dart';
+import 'package:ai_recipe_generation/your_fridge.dart';
 import 'package:ai_recipe_generation/navigation/bottom_nav.dart';
 import 'package:ai_recipe_generation/recipe.dart';
 import 'package:ai_recipe_generation/recipes_list.dart';
@@ -72,6 +72,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _selectedIndex = index;
       extractedIngredients = null;
       generatedRecipes = null;
+      chosenRecipe = null;
     });
   }
 
@@ -82,21 +83,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (extractedIngredients != null) {
       print("Extracted: $extractedIngredients");
       currentPage = SustainabilityAnalysisPage(ingredients: extractedIngredients!);
+    } else if (chosenRecipe != null) {
+      currentPage = RecipePage(recipe: chosenRecipe!);
     } else if (generatedRecipes != null) {
-      print("Generated recipes: $generatedRecipes");
       currentPage = RecipeListPage(
         recipes: generatedRecipes!,
         onRecipeChosen: (recipe) {
           setState(() {
             chosenRecipe = recipe;
-            print('recipe in home page: $chosenRecipe');
           });
         },
       );
-      generatedRecipes = null;
-    } else if (chosenRecipe != null) {
-      print("Chosen recipe: $chosenRecipe");
-      currentPage = RecipePage(recipe: chosenRecipe!);
+      if (chosenRecipe != null) {
+        currentPage = RecipePage(recipe: chosenRecipe!);
+      }
     } else {
       currentPage = _pages[_selectedIndex];
     }

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'home.dart';
 import 'recipe.dart';
 
@@ -20,6 +21,7 @@ class GenerateRecipes extends StatefulWidget {
 class _GenerateRecipesState extends State<GenerateRecipes> {
   User? user = FirebaseAuth.instance.currentUser;
   List<String> ingredients = [];
+  List <String> expirationDates = [];
   List<String> allergies = [];
   List<bool> selectedIngredients = [];
   List<bool> selectedAllergies = [];
@@ -30,22 +32,127 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     _fetchUserData();
   }
 
+  void _showCustomDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return SingleChildScrollView(
+          child: Center(
+            child: Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              elevation: 16,
+              backgroundColor: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.restaurant_menu, size: 50, color: Color(0xFF606C38)),
+                    const SizedBox(height: 12),
+                    Text(
+                      "ready to cook?",
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF283618),
+                      ),
+                    ),
+            
+                    const SizedBox(height: 12),
+                    _buildCardWrapper(
+                      TextField(
+                        controller: dietaryRestrictionsController,
+                        decoration: const InputDecoration(
+                          labelText: 'Other Allergies/Dietary Restrictions',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+            
+                    _buildCardWrapper(
+                      TextField(
+                        decoration: const InputDecoration(
+                          labelText: 'Preferred Cuisine Type',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        onChanged: (value) {
+                          if (!mounted) return;
+                          setState(() {
+                            cuisineType = value;
+                          });
+                        },
+                      ),
+                    ),
+                    SizedBox(height: 16,),
+                    Text(
+                      "Tap below to generate recipes using your selected ingredients. We'll make sure to avoid your listed allergies!",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: ()  {
+                            Navigator.of(context).pop(); // close dialog
+                            generateRecipe(); // call your generate function
+                          },
+                          child: Text("create recipes", style: GoogleFonts.poppins()),
+                        )),
+                    SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFDDA15E)),
+                            onPressed: () {
+                              Navigator.of(context).pop(); // close dialog
+                            },
+                            child: Text("cancel", style: GoogleFonts.poppins()),
+                        )),
+            
+                      ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _fetchUserData() {
     if (user != null) {
       FirebaseFirestore.instance
           .collection('users')
           .doc(user!.uid)
           .collection('ingredients')
-          .orderBy('timestamp', descending: true)
+          .orderBy('expiration_date', descending: false)
           .snapshots()
           .listen((snapshot) {
         List<String> fetchedIngredients = [];
+        List<String> fetchedExpirationDates = [];
+
         for (var doc in snapshot.docs) {
           fetchedIngredients.add(doc.id); // Document ID is the ingredient name
+          final timestamp = doc['expiration_date'] as Timestamp?;
+          final date = timestamp?.toDate();
+          final formattedDate = date != null ? DateFormat.yMMMd().format(date) : "no date";
+          fetchedExpirationDates.add(formattedDate);
         }
+
         if (!mounted) return;
         setState(() {
-          ingredients = fetchedIngredients.toSet().toList();
+          ingredients = fetchedIngredients;
+          expirationDates = fetchedExpirationDates;
           selectedIngredients = List.filled(ingredients.length, false);
         });
       });
@@ -60,7 +167,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
         List<String> fetchedAllergies = [];
         for (var doc in snapshot.docs) {
           final data = List<String>.from(doc['allergies']);
-          fetchedAllergies.addAll(data.map((allergy) => allergy.toLowerCase())); // Convert to lowercase
+          fetchedAllergies.addAll(data.map((allergy) => allergy.toLowerCase()));
         }
         if (!mounted) return;
         setState(() {
@@ -237,10 +344,10 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
         selectedIngredients.removeAt(index);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ingredient deleted')),
+        SnackBar(content: Text('ingredient deleted')),
       );
     } catch (e) {
-      print('Error deleting ingredient: $e');
+      print('error deleting ingredient: $e');
     }
   }
 
@@ -295,124 +402,97 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "y o u r   f r i d g e",
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-                color: const Color(0xFF283618),
-              ),
-            ),
-            const SizedBox(width: 10),
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: const Color(0xFF606C38),
-              child: IconButton(
-                icon: const Icon(Icons.add, color: Colors.white),
-                onPressed: () {
-                  debugPrint("add button pressed!");
-                  inputIngredients();
-                },
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
-        backgroundColor: const Color(0xFFf1faee),
-      ),
-      backgroundColor: const Color(0xFFf1faee),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle('Select Ingredients'),
-                    _buildCardWrapper(_buildCheckboxList(ingredients, selectedIngredients)),
-                    const SizedBox(height: 20),
-
-                    if (isLoading)
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(12.0),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFbc6c25)),
-                          ),
-                        ),
-                      ),
-
-                    const SizedBox(height: 20),
-                    _buildSectionTitle('Other Specifications'),
-                    _buildCardWrapper(_buildCheckboxList(allergies, selectedAllergies)),
-                    const SizedBox(height: 16),
-
-                    _buildCardWrapper(
-                      TextField(
-                        controller: dietaryRestrictionsController,
-                        decoration: const InputDecoration(
-                          labelText: 'Other Allergies/Dietary Restrictions',
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildCardWrapper(
-                      TextField(
-                        decoration: const InputDecoration(
-                          labelText: 'Preferred Cuisine Type',
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        onChanged: (value) {
-                          if (!mounted) return;
-                          setState(() {
-                            cuisineType = value;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: SizedBox(
-                width: double.infinity,
-                child:
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                  onPressed: generateRecipe,
-                  child: const Text(
-                    'create recipes',
-                    style: TextStyle(color: Colors.white),
+    return Stack(
+      children: [
+        // — your existing scaffold stays exactly the same —
+        Scaffold(
+          appBar: AppBar(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "y o u r   f r i d g e",
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    color: const Color(0xFF283618),
                   ),
                 ),
+                const SizedBox(width: 10),
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: const Color(0xFF606C38),
+                  child: IconButton(
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    onPressed: inputIngredients,
+                  ),
+                ),
+              ],
+            ),
+            centerTitle: true,
+            backgroundColor: const Color(0xFFf1faee),
+          ),
+          backgroundColor: const Color(0xFFf1faee),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionTitle('Select Ingredients'),
+                        _buildCardWrapper(_buildCheckboxList(ingredients, selectedIngredients, expirationDates)),
+                        const SizedBox(height: 20),
+                        // we’ve removed the old in‐page loader; the overlay will handle it
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _showCustomDialog,
+                      child: const Text(
+                        'create recipes',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // — overlay barrier + spinner when loading —
+        if (isLoading) ...[
+          // prevent any interaction & dim background
+          ModalBarrier(
+            dismissible: false,
+            color: Colors.black.withOpacity(0.5),
+          ),
+          // centered loader
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFbc6c25)),
               ),
             ),
-            )],
-        ),
-      ),
+          ),
+        ],
+      ],
     );
   }
+
 
   Widget _buildSectionTitle(String title) {
     return Padding(
@@ -443,7 +523,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
   }
 
 
-  Widget _buildCheckboxList(List<String> items, List<bool> selections) {
+  Widget _buildCheckboxList(List<String> items, List<bool> selections, List<String> expirationDates) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -476,6 +556,13 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
                           overflow: TextOverflow.ellipsis, // Prevent overflow
                         ),
                       ),
+                      Expanded(child:
+                      Text(
+                        expirationDates[index],
+                        style: GoogleFonts.poppins(fontSize: 16),
+                        overflow: TextOverflow.ellipsis, // Prevent overflow
+                      ),
+                      )
                     ],
                   ),
                 ),

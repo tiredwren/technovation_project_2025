@@ -14,7 +14,7 @@ class SustainabilityScanner extends StatefulWidget {
 }
 
 class _SustainabilityScannerState extends State<SustainabilityScanner> {
-  final String apiKey = 'AIzaSyCM8ZHUXiiC2_Pe4L6x_h4q714fgqDm6cY';
+  final String apiKey = 'AIzaSyATi56IvBnjGbZ5qhFOLtAPl7mf5owwrdI';
   late final GenerativeModel _model;
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();

@@ -1,4 +1,4 @@
-import 'package:ai_recipe_generation/generate_recipes.dart';
+import 'package:ai_recipe_generation/your_fridge.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:ai_recipe_generation/signup_login.dart';
@@ -25,6 +25,9 @@ class MyApp extends StatelessWidget {
           Theme.of(context).textTheme,
         ).copyWith(titleLarge: GoogleFonts.poppins(fontSize: 18, color: const Color(
             0xff3a6b40))),
+          progressIndicatorTheme: ProgressIndicatorThemeData(
+            color: Color(0xFFbc6c25), // sets the spinner color
+          ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             iconColor: Color(0xFFfefae0),

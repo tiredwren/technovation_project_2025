@@ -15,7 +15,7 @@ class SustainabilityAnalysisPage extends StatefulWidget {
 }
 
 class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage> {
-  final String apiKey = 'AIzaSyCM8ZHUXiiC2_Pe4L6x_h4q714fgqDm6cY';
+  final String apiKey = 'AIzaSyATi56IvBnjGbZ5qhFOLtAPl7mf5owwrdI';
   String? result;
   bool isLoading = false;
   int sustainabilityScore = 50;
@@ -222,10 +222,7 @@ class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage>
               const SizedBox(height: 20),
               isLoading
                   ? Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                      Color(0xffff571d)), // Match the button color
-                ),
+                child: CircularProgressIndicator(),
               )
                   : breakdown.isNotEmpty
                   ? Column(
