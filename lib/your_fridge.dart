@@ -59,9 +59,9 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
                         color: Color(0xFF283618),
                       ),
                     ),
-            
+
                     const SizedBox(height: 12),
-                    _buildCardWrapper(
+                    _buildSecondCardWrapper(
                       TextField(
                         controller: dietaryRestrictionsController,
                         decoration: const InputDecoration(
@@ -73,8 +73,8 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
                       ),
                     ),
                     const SizedBox(height: 16),
-            
-                    _buildCardWrapper(
+
+                    _buildSecondCardWrapper(
                       TextField(
                         decoration: const InputDecoration(
                           labelText: 'Preferred Cuisine Type',
@@ -92,7 +92,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
                     ),
                     SizedBox(height: 16,),
                     Text(
-                      "Tap below to generate recipes using your selected ingredients. We'll make sure to avoid your listed allergies!",
+                      "tap below to generate recipes using your selected ingredients. we'll make sure to avoid your listed allergies!",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 14,
@@ -105,7 +105,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
                         child: ElevatedButton(
                           onPressed: ()  {
                             Navigator.of(context).pop(); // close dialog
-                            generateRecipe(); // call your generate function
+                            generateRecipe(); // call generate function
                           },
                           child: Text("create recipes", style: GoogleFonts.poppins()),
                         )),
@@ -118,7 +118,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
                             },
                             child: Text("cancel", style: GoogleFonts.poppins()),
                         )),
-            
+
                       ],
                 ),
               ),
@@ -286,36 +286,69 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
 
   }
 
-  void _showEditDialog(String ingredient, int index) {
-    final TextEditingController controller = TextEditingController(text: ingredient);
+  void _showEditDialog(String currentIngredient, String currentExpirationDate, int index) {
+    final TextEditingController ingredientController = TextEditingController(text: currentIngredient);
+    DateTime selectedDate = DateTime.parse(currentExpirationDate); // Convert expiration date to DateTime
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Edit Ingredient'),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(labelText: 'Ingredient Name'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: ingredientController,
+                decoration: InputDecoration(labelText: 'Ingredient Name'),
+              ),
+              SizedBox(height: 20),
+              Text("Expiration Date:"),
+              SizedBox(height: 10),
+              TextButton(
+                onPressed: () async {
+                  final DateTime? newDate = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+                  if (newDate != null) {
+                    setState(() {
+                      selectedDate = newDate;
+                    });
+                  }
+                },
+                child: Text(
+                  '${selectedDate.toLocal()}'.split(' ')[0], // Display the date in YYYY-MM-DD format
+                  style: TextStyle(color: Colors.blue),
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
               onPressed: () {
-                // Delete Ingredient
-                _deleteIngredient(index);
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Close dialog
               },
-              child: Text('Delete'),
+              child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                // Update Ingredient
-                if (controller.text.isNotEmpty) {
-                  _updateIngredient(index, controller.text);
+              onPressed: () async {
+                String newIngredient = ingredientController.text.trim();
+                if (newIngredient.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ingredient name cannot be empty')));
+                  return;
                 }
-                Navigator.of(context).pop();
+
+                String formattedDate = selectedDate.toIso8601String(); // Format date to string for Firestore
+
+                // Update the ingredient and expiration date in Firestore
+                await _updateIngredient(index, newIngredient, formattedDate);
+
+                Navigator.of(context).pop(); // Close dialog
               },
-              child: Text('Update'),
+              child: Text('Save'),
             ),
           ],
         );
@@ -323,82 +356,46 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     );
   }
 
-  void _deleteIngredient(int index) async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return; // Check for signed-in user
 
-    String userId = user.uid;
 
-    try {
-      // Delete the ingredient document from Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('ingredients')
-          .doc(ingredients[index]) // Use the ingredient name as the document ID
-          .delete();
+  // Modify _deleteIngredient to also update Firestore when an ingredient is deleted
+  Future<void> _deleteIngredient(int index) async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('ingredients')
+        .doc(ingredients[index].toLowerCase()) // Using lowercase ingredient name for doc ID
+        .delete();
 
-      if (!mounted) return;
-      setState(() {
-        ingredients.removeAt(index);
-        selectedIngredients.removeAt(index);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ingredient deleted')),
-      );
-    } catch (e) {
-      print('error deleting ingredient: $e');
-    }
+    setState(() {
+      ingredients.removeAt(index);
+      expirationDates.removeAt(index);
+      selectedIngredients.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ingredient deleted')));
   }
 
-  void _updateIngredient(int index, String newIngredient) async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return; // Check for signed-in user
+  Future<void> _updateIngredient(int index, String newIngredient, String newExpirationDate) async {
+    // Update the local lists with the new values
+    setState(() {
+      ingredients[index] = newIngredient;
+      expirationDates[index] = newExpirationDate;
+    });
 
-    String userId = user.uid;
-
-    try {
-      // get current id name
-      String currentIngredient = ingredients[index].toLowerCase(); // lowercase to ensure all are grabbed
-
-      // change id name to store it as the updated ingredient name
-      if (newIngredient.toLowerCase() != currentIngredient) {
-        // Delete the old document
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .collection('ingredients')
-            .doc(currentIngredient)
-            .delete();
-
-        // Add new ingredient as a new document
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .collection('ingredients')
-            .doc(newIngredient.toLowerCase()) // ingredient name = document id
-            .set({
-          'timestamp': FieldValue.serverTimestamp(), // timestamp to estimate expiration date
-        });
-      }
-
-      if (!mounted) return;
-      setState(() {
-        // update local state with the new ingredient name
-        if (newIngredient.toLowerCase() != currentIngredient) {
-          ingredients[index] = newIngredient; // Update the local state
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ingredient updated')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('error updating ingredient: $e')),
-      );
-    }
+    // Firebase update logic (make sure it updates both name and expiration date)
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('ingredients')
+        .doc(ingredients[index].toLowerCase()) // Using lowercase ingredient name for doc ID
+        .update({
+      'expiration_date': newExpirationDate,
+    });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -407,27 +404,30 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
         // — your existing scaffold stays exactly the same —
         Scaffold(
           appBar: AppBar(
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "y o u r   f r i d g e",
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                    color: const Color(0xFF283618),
+            title: Padding(
+              padding: EdgeInsetsDirectional.symmetric(vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "y o u r   f r i d g e",
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: const Color(0xFF283618),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: const Color(0xFF606C38),
-                  child: IconButton(
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    onPressed: inputIngredients,
+                  const SizedBox(width: 20),
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: const Color(0xFF606C38),
+                    child: IconButton(
+                      icon: const Icon(Icons.add, color: Colors.white),
+                      onPressed: inputIngredients,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             centerTitle: true,
             backgroundColor: const Color(0xFFf1faee),
@@ -442,8 +442,21 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildSectionTitle('Select Ingredients'),
-                        _buildCardWrapper(_buildCheckboxList(ingredients, selectedIngredients, expirationDates)),
+                        ingredients.isEmpty
+                            ? Column(
+                          children: [
+                            _buildCardWrapper(
+                              _buildCheckboxList(ingredients, selectedIngredients, expirationDates),
+                            ),
+                          ],
+                        ) : Column(
+                          children: [
+                            _buildSectionTitle('select ingredients'), // display the section title only if there are ingredients
+                            _buildCardWrapper(
+                              _buildCheckboxList(ingredients, selectedIngredients, expirationDates),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 20),
                         // we’ve removed the old in‐page loader; the overlay will handle it
                       ],
@@ -505,23 +518,33 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
   }
 
   Widget _buildCardWrapper(Widget child) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return ingredients.isEmpty
+        ? Column(
+      children: [
+        Image.asset('assets/images/cute_fridge.png', height: 200), // use our personal one
+        SizedBox(height: 20),
+        Text(
+          "you currently have no ingredients in your fridge. when you add ingredients, they will appear on this page.",
+          style: GoogleFonts.poppins(fontSize: 16, color: Colors.black54),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(width: double.infinity,
+            child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF606C38)),
+            onPressed: inputIngredients,
+            child: const Text(
+            'add ingredients now!',
+            style: TextStyle(color: Colors.white),
+            )),
           ),
-        ],
-      ),
-      child: child,
-    );
+      ],
+    )
+        : child; // return the usual card wrapper if ingredients are present
   }
 
+  Widget _buildSecondCardWrapper(Widget child) {
+    return child; // return the usual card wrapper if ingredients are present
+  }
 
   Widget _buildCheckboxList(List<String> items, List<bool> selections, List<String> expirationDates) {
     return Container(
@@ -538,38 +561,27 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Checkbox(
-                        value: selections[index],
-                        onChanged: (bool? value) {
-                          if (!mounted) return;
-                          setState(() {
-                            selections[index] = value!;
-                          });
-                        },
-                      ),
-                      Expanded(
-                        child: Text(
-                          items[index],
-                          style: GoogleFonts.poppins(fontSize: 16),
-                          overflow: TextOverflow.ellipsis, // Prevent overflow
-                        ),
-                      ),
-                      Expanded(child:
                       Text(
-                        expirationDates[index],
+                        items[index], // Ingredient name
                         style: GoogleFonts.poppins(fontSize: 16),
                         overflow: TextOverflow.ellipsis, // Prevent overflow
                       ),
-                      )
+                      SizedBox(height: 4),
+                      Text(
+                        expirationDates[index], // Expiration date
+                        style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54),
+                        overflow: TextOverflow.ellipsis, // Prevent overflow
+                      ),
                     ],
                   ),
                 ),
                 // Edit Button
                 TextButton(
                   onPressed: () {
-                    _showEditDialog(items[index], index); // Show edit dialog
+                    _showEditDialog(items[index], expirationDates[index], index); // Pass expiration date too
                   },
                   child: Text("Edit", style: TextStyle(color: Colors.blue)),
                 ),

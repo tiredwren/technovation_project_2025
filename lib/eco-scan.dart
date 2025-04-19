@@ -1,11 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'analyze.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 class SustainabilityScanner extends StatefulWidget {
-  final void Function(String) onExtracted;
+  final void Function(String, String) onExtracted;
 
   const SustainabilityScanner({Key? key, required this.onExtracted}) : super(key: key);
 
@@ -19,6 +20,7 @@ class _SustainabilityScannerState extends State<SustainabilityScanner> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _textController = TextEditingController();
+  final TextEditingController _companyController = TextEditingController();  // Controller for the company/website
   bool extracting = false;
 
   @override
@@ -33,16 +35,14 @@ class _SustainabilityScannerState extends State<SustainabilityScanner> {
   }
 
   void _onTextChanged() {
-    setState(() {
-
-    });
-}
+    setState(() {});
+  }
 
   @override
   void dispose() {
-    // Clean up the controller when the widget is disposed
     _textController.removeListener(_onTextChanged);
     _textController.dispose();
+    _companyController.dispose();
     super.dispose();
   }
 
@@ -62,10 +62,9 @@ class _SustainabilityScannerState extends State<SustainabilityScanner> {
       final imageBytes = await imageFile.readAsBytes();
       final content = [
         Content.multi([
-          TextPart("""Extract the text in this image. This is a list of product ingredients, 
-so ensure the extracted text is logical. Don't include any text 
-that isn't in the uploaded image, like 'here's a list of the extracted ingredients
-from the provided page'"""),
+          TextPart("""Extract the text in this image. This is a list of product ingredients. 
+After extracting the text, please identify any company name or website URL within the text, 
+and include it as part of the extracted information. Ensure accuracy and logic in the extraction."""),
           DataPart('image/jpeg', imageBytes),
         ])
       ];
@@ -73,8 +72,16 @@ from the provided page'"""),
       final response = await _model.generateContent(content);
       String extractedText = response.text ?? 'no text extracted.';
 
+      // Clean the extracted text before further processing
+      extractedText = _cleanText(extractedText);
+
+      // Ask the AI to extract company/website information
+      String companyOrWebsite = await _extractCompanyFromAI(extractedText);
+
+      // Update the UI with the extracted information
       setState(() {
         _textController.text = extractedText;
+        _companyController.text = companyOrWebsite;
         extracting = false;
       });
     } catch (e) {
@@ -85,10 +92,45 @@ from the provided page'"""),
     }
   }
 
+  Future<String> _extractCompanyFromAI(String text) async {
+    try {
+      final content = [
+        Content.multi([
+          TextPart("""Extract the company name or website URL from the following text: $text
+          Please provide the name of the company or the URL if it is present. If neither is found, return 'not found in the image. please enter it to the best of your knowledge!'."""),
+        ])
+      ];
+
+      final response = await _model.generateContent(content);
+      String companyOrWebsite = response.text ?? 'none';
+      return companyOrWebsite;
+    } catch (e) {
+      return 'error extracting company/website: $e';
+    }
+  }
+
+  // ensure extracted text is properly formatted
+  String _cleanText(String text) {
+    // Remove asterisks and other unwanted characters but keep commas, colons, and periods
+    text = text.replaceAll(RegExp(r'[*]'), '');  // Remove asterisks
+    text = text.replaceAll(RegExp(r'[^\w\s,.:;]'), '');  // Keep only letters, numbers, spaces, and punctuation
+    text = text.toLowerCase().trim();  // Convert everything to lowercase and trim excess spaces
+    return text;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("")),
+      appBar: AppBar(
+        title: Text(
+        "s c a n   f o r   s u s t a i n a b i l i t y",
+        style: GoogleFonts.poppins(
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+          color: const Color(0xFF283618),
+        ),
+      ),
+        centerTitle: true,),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -106,6 +148,17 @@ from the provided page'"""),
                   labelText: extracting
                       ? "processing image..."
                       : "ingredients list (edit as necessary)",
+                ),
+              ),
+              const SizedBox(height: 20),
+              // New TextField for company/website
+              TextField(
+                controller: _companyController,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: extracting
+                      ? "processing image..."
+                      : "company name or website (edit as necessary)",
                 ),
               ),
               const SizedBox(height: 20),
@@ -132,10 +185,9 @@ from the provided page'"""),
                 child: ElevatedButton(
                   onPressed: _textController.text != "" && !extracting
                       ? () {
-                      print(_textController.text);
-                      widget.onExtracted(_textController.text);
-                    }
-                  : null,
+                    widget.onExtracted(_textController.text, _companyController.text);
+                  }
+                      : null,
                   child: const Text("analyze sustainability"),
                 ),
               ),

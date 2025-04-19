@@ -184,7 +184,7 @@ Do not include any text or explanation.
           "i n p u t   i n g r e d i e n t s",
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
-            fontSize: 25,
+            fontSize: 20,
           ),
         ),
         centerTitle: true,

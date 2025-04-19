@@ -27,14 +27,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final user = FirebaseAuth.instance.currentUser!;
 
   String? extractedIngredients;
+  String? company;
   List<String>? generatedRecipes;
   String? chosenRecipe;
 
-  late int _selectedIndex;
+  late int _selectedIndex = widget.initialTab;
 
   final List<IconData> _icons = [
-    Icons.shopping_cart,
-    Icons.emoji_food_beverage_outlined,
+    Icons.kitchen,
+    Icons.compost,
   ];
 
   final List<String> _labels = [
@@ -51,9 +52,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       },
     ),
     SustainabilityScanner(
-      onExtracted: (ingredients) {
+      onExtracted: (ingredients, companyNameOrSite) {
         setState(() {
           extractedIngredients = ingredients;
+          company = companyNameOrSite;
         });
       },
     ),
@@ -61,10 +63,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _selectedIndex = widget.initialTab;
-    print("Initial tab: ${widget.initialTab}");
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialTab != oldWidget.initialTab) {
+      setState(() {
+        _selectedIndex = widget.initialTab;
+      });
+    }
   }
 
   void navigateBottomBar(int index) {
@@ -82,7 +87,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     if (extractedIngredients != null) {
       print("Extracted: $extractedIngredients");
-      currentPage = SustainabilityAnalysisPage(ingredients: extractedIngredients!);
+      currentPage = SustainabilityAnalysisPage(
+        ingredients: extractedIngredients!,
+        companyOrWebsite: company!,
+      );
     } else if (chosenRecipe != null) {
       currentPage = RecipePage(recipe: chosenRecipe!);
     } else if (generatedRecipes != null) {
@@ -133,6 +141,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         labels: _labels,
         numberOfTabs: _icons.length,
         icons: _icons,
+        selectedIndex: _selectedIndex, // <- Pass the selected index here if BottomNavigation supports it
       ),
     );
   }
