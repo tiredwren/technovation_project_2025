@@ -1,5 +1,3 @@
-import 'package:ai_recipe_generation/recipes_list.dart';
-import 'package:ai_recipe_generation/scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +6,6 @@ import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'home.dart';
-import 'recipe.dart';
 
 class GenerateRecipes extends StatefulWidget {
   final void Function(List<String>)? onRecipesGenerated;
