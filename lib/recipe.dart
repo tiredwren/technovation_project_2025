@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'home.dart';
+
 class RecipePage extends StatefulWidget {
   final String recipe;
   RecipePage({required this.recipe});
@@ -155,7 +157,12 @@ class _RecipePageState extends State<RecipePage> {
         centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () =>
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HomePage(initialTab: 0)),
+                    (route) => false,
+              ),
         ),
         actions: [
           IconButton(icon: Icon(Icons.share), onPressed: _shareRecipe),

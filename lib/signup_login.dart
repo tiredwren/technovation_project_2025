@@ -1,4 +1,4 @@
-import 'package:ai_recipe_generation/generate_recipes.dart';
+import 'package:ai_recipe_generation/your_fridge.dart';
 import 'package:ai_recipe_generation/home.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_login/flutter_login.dart';
@@ -67,7 +67,7 @@ class _SignupLoginState extends State<SignupLogin> {
                   onSignup: _onSignup,
                   onRecoverPassword: _onRecoverPassword,
                   headerWidget: Padding(
-                    padding: const EdgeInsets.only(bottom: 20.0),
+                    padding: const EdgeInsets.only(),
                     child: Center(
                       child: Image.asset(
                         'assets/images/logo.png',

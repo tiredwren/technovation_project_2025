@@ -1,12 +1,10 @@
 import 'dart:io';
-import 'package:ai_recipe_generation/generate_recipes.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import './ingredients_list.dart';
 import 'home.dart';
 
 class GeminiImageProcessor extends StatefulWidget {
@@ -21,8 +19,8 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
   bool _isTextNotEmpty = false;
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _textController = TextEditingController();
-
   bool extracting = false;
+  Map<String, DateTime?> _expirationDates = {};
 
   @override
   void initState() {
@@ -39,9 +37,7 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
     });
   }
 
-
   Future<void> _pickImage(ImageSource source) async {
-
     final pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
       setState(() {
@@ -75,25 +71,21 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
         _textController.text = 'error processing image: $e';
       });
     }
-
   }
 
-  void _saveIngredients() async {
-    final extractedText = _textController.text.trim(); // Trim any whitespace
+  Future<void> _saveIngredients() async {
+    final extractedText = _textController.text.trim();
 
-    // Check if extractedText is empty
     if (extractedText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("no ingredients to save.")),
       );
-      return; // Exit the function early if there are no ingredients
+      return;
     }
 
-    // Split and trim the ingredients from the extracted text
     final ingredients = extractedText.split(',').map((e) => e.trim()).toList();
 
     User? user = FirebaseAuth.instance.currentUser;
-
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("user not signed in!")),
@@ -103,34 +95,47 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
 
     String userId = user.uid;
 
-    // check through each ingredient and add it as a separate document
     for (String ingredient in ingredients) {
-      if (ingredient.isNotEmpty) { // ensure that the ingredient is not empty
+      if (ingredient.isNotEmpty) {
+        DateTime? expirationDate = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime.now().subtract(const Duration(days: 1)),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+          helpText: 'Select expiration date for "$ingredient"',
+        );
+
+        if (expirationDate == null) {
+          // Use AI to estimate expiration date
+          expirationDate = await _estimateExpirationDate(ingredient);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('no date selected for "$ingredient" – using AI estimate.')),
+          );
+        }
+
+        _expirationDates[ingredient] = expirationDate;
+
         try {
           await FirebaseFirestore.instance
               .collection('users')
               .doc(userId)
               .collection('ingredients')
-              .doc(ingredient
-              .toLowerCase()) // use ingredient as document id (in lowercase)
+              .doc(ingredient.toLowerCase())
               .set({
             'timestamp': FieldValue.serverTimestamp(),
-            // add a timestamp field (for expiration dates)
+            'expiration_date': Timestamp.fromDate(expirationDate!),
           });
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("error saving ingredient: $e")),
+            SnackBar(content: Text("error saving $ingredient: $e")),
           );
         }
       }
     }
 
-    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("ingredients saved!")),
     );
-
-    // navigate to main page after saving
 
     Navigator.pushAndRemoveUntil(
       context,
@@ -139,13 +144,47 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
     );
   }
 
-    @override
+  Future<DateTime?> _estimateExpirationDate(String ingredient) async {
+    try {
+      final prompt = '''
+Estimate a typical expiration time from today for "$ingredient". Respond only with a number of days (as an integer).
+Example:
+- milk → 7
+- eggs → 21
+- apples → 30
+Do not include any text or explanation.
+''';
+
+      final response = await _model.generateContent([
+        Content.text(prompt)
+      ]);
+
+      final rawText = response.text?.trim() ?? '';
+      final days = int.tryParse(RegExp(r'\d+').stringMatch(rawText) ?? '');
+
+      if (days != null) {
+        return DateTime.now().add(Duration(days: days));
+      }
+    } catch (e) {
+      print("Error estimating expiration: $e");
+    }
+
+    // fallback: 7 days if AI fails
+    return DateTime.now().add(const Duration(days: 7));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("i n p u t   i n g r e d i e n t s",
-        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 25),
-      ),
-      centerTitle: true,
+      appBar: AppBar(
+        title: Text(
+          "i n p u t   i n g r e d i e n t s",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Center(
@@ -187,7 +226,6 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -196,16 +234,16 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
                     label: const Text("save"),
                   ),
                 ),
-
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () => Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (context) => const HomePage(initialTab: 0)),
+                      MaterialPageRoute(
+                          builder: (context) => const HomePage(initialTab: 0)),
                           (route) => false,
                     ),
-                      child: const Text("cancel"),
+                    child: const Text("cancel"),
                   ),
                 ),
               ],
