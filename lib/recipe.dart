@@ -64,13 +64,13 @@ class _RecipePageState extends State<RecipePage> {
   Future<void> _fetchAIImage() async {
     try {
       final response = await http.post(
-        Uri.parse('https://your-cloud-function-url/generate-image'), // 👈 Replace with your Firebase function URL
+        Uri.parse('https://some-cloud-function-url/generate-image'), // replace with firebase cloud function url
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'prompt': title}),
       );
 
       final data = jsonDecode(response.body);
-      final base64 = data['image']; // The field must match what's returned by your function
+      final base64 = data['image']; // the field must match what's returned by the function
       final imageBytes = base64Decode(base64);
 
       setState(() {

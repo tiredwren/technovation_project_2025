@@ -33,92 +33,94 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     showDialog(
       context: context,
       builder: (context) {
-        return SingleChildScrollView(
-          child: Center(
-            child: Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              elevation: 16,
-              backgroundColor: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.restaurant_menu, size: 50, color: Color(0xFF606C38)),
-                    const SizedBox(height: 12),
-                    Text(
-                      "ready to cook?",
-                      style: GoogleFonts.poppins(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF283618),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-                    _buildSecondCardWrapper(
-                      TextField(
-                        controller: dietaryRestrictionsController,
-                        decoration: const InputDecoration(
-                          labelText: 'Other Allergies/Dietary Restrictions',
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildSecondCardWrapper(
-                      TextField(
-                        decoration: const InputDecoration(
-                          labelText: 'Preferred Cuisine Type',
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        onChanged: (value) {
-                          if (!mounted) return;
-                          setState(() {
-                            cuisineType = value;
-                          });
-                        },
-                      ),
-                    ),
-                    SizedBox(height: 16,),
-                    Text(
-                      "tap below to generate recipes using your selected ingredients. we'll make sure to avoid your listed allergies!",
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: ()  {
-                            Navigator.of(context).pop(); // close dialog
-                            generateRecipe(); // call generate function
-                          },
-                          child: Text("create recipes", style: GoogleFonts.poppins()),
-                        )),
-                    SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFDDA15E)),
-                            onPressed: () {
-                              Navigator.of(context).pop(); // close dialog
-                            },
-                            child: Text("cancel", style: GoogleFonts.poppins()),
-                        )),
-
-                      ],
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+              horizontal: 20, vertical: 40),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.restaurant_menu, size: 50, color: Color(0xFF606C38)),
+                const SizedBox(height: 12),
+                Text(
+                  "ready to cook?",
+                  style: GoogleFonts.poppins(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF283618),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+
+                _buildSecondCardWrapper(
+                  TextField(
+                    controller: dietaryRestrictionsController,
+                    decoration: const InputDecoration(
+                      labelText: 'allergies/dietary restrictions/other specifications',
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                _buildSecondCardWrapper(
+                  TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'preferred cuisine type',
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    onChanged: (value) {
+                      if (!mounted) return;
+                      setState(() {
+                        cuisineType = value;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "tap below to generate recipes using your selected ingredients. we'll make sure to avoid your listed allergies!",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // close dialog
+                      generateRecipe(); // call generate function
+                    },
+                    child: Text("create recipes", style: GoogleFonts.poppins()),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFFDDA15E),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("cancel", style: GoogleFonts.poppins()),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -139,10 +141,12 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
         List<String> fetchedExpirationDates = [];
 
         for (var doc in snapshot.docs) {
-          fetchedIngredients.add(doc.id); // Document ID is the ingredient name
+          fetchedIngredients.add(doc.id); // document ID is the ingredient name
           final timestamp = doc['expiration_date'] as Timestamp?;
           final date = timestamp?.toDate();
-          final formattedDate = date != null ? DateFormat.yMMMd().format(date) : "no date";
+          final formattedDate = date != null
+              ? DateFormat.yMMMd().format(date)
+              : "no date";
           fetchedExpirationDates.add(formattedDate);
         }
 
@@ -208,6 +212,8 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     - Ingredients: ${chosenIngredients.join(", ")}
     - Allergies to avoid: ${chosenAllergies.join(", ")}
     - Cuisine preference: ${cuisineType.isNotEmpty ? cuisineType : "Any"}
+    The recipes should use ONLY the ingredients given. DO NOT USE ANY EXTRA INGREDIENTS. 
+    Try to also use all ingredients given in all recipes, if possible.
 
     Format for each:
     Title:
@@ -228,8 +234,9 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     Separate each recipe with '###'
     ''';
 
-    final apiKey = 'AIzaSyATi56IvBnjGbZ5qhFOLtAPl7mf5owwrdI';
-    final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=$apiKey');
+    final apiKey = 'API_KEY';
+    final url = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=$apiKey');
 
     try {
       final response = await http.post(
@@ -243,7 +250,8 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         String responseText = data['candidates'][0]['content']['parts'][0]['text'];
-        List<String> generatedRecipes = responseText.split('###').map((r) => r.trim()).toList();
+        List<String> generatedRecipes = responseText.split('###').map((r) =>
+            r.trim()).toList();
 
         if (!mounted) return;
         setState(() {
@@ -277,75 +285,110 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     print("in input");
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const HomePage(initialTab: 2)),
+      MaterialPageRoute(builder: (context) => const HomePage(initialTab: 4)),
           (route) => false,
     );
-
   }
 
   void _showEditDialog(String currentIngredient, String currentExpirationDate, int index) {
+    print("editing button pressed");
     final TextEditingController ingredientController = TextEditingController(text: currentIngredient);
-    DateTime selectedDate = DateTime.parse(currentExpirationDate); // Convert expiration date to DateTime
+    DateTime selectedDate = DateFormat("MMM dd, yyyy").parse(currentExpirationDate);
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Edit Ingredient'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: ingredientController,
-                decoration: InputDecoration(labelText: 'Ingredient Name'),
-              ),
-              SizedBox(height: 20),
-              Text("Expiration Date:"),
-              SizedBox(height: 10),
-              TextButton(
-                onPressed: () async {
-                  final DateTime? newDate = await showDatePicker(
-                    context: context,
-                    initialDate: selectedDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2100),
-                  );
-                  if (newDate != null) {
-                    setState(() {
-                      selectedDate = newDate;
-                    });
-                  }
-                },
-                child: Text(
-                  '${selectedDate.toLocal()}'.split(' ')[0], // Display the date in YYYY-MM-DD format
-                  style: TextStyle(color: Colors.blue),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: Text(
+            'edit ingredient',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: ingredientController,
+                  decoration: InputDecoration(
+                    labelText: 'ingredient name',
+                    labelStyle: GoogleFonts.poppins(),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "expiration date",
+                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+                  ),
+                ),
+                SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () async {
+                    final DateTime? newDate = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (newDate != null) {
+                      setState(() {
+                        selectedDate = newDate;
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade400),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          DateFormat('yyyy-MM-dd').format(selectedDate),
+                          style: GoogleFonts.poppins(fontSize: 15),
+                        ),
+                        Icon(Icons.calendar_today, color: Color(0xFFAC2920), size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop();
               },
-              child: Text('Cancel'),
+              child: Text('cancel', style: GoogleFonts.poppins(color: Colors.red)),
             ),
-            TextButton(
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
               onPressed: () async {
                 String newIngredient = ingredientController.text.trim();
                 if (newIngredient.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ingredient name cannot be empty')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('ingredient name cannot be empty')),
+                  );
                   return;
                 }
 
-                String formattedDate = selectedDate.toIso8601String(); // Format date to string for Firestore
+                Timestamp formattedDate = Timestamp.fromDate(selectedDate);
 
-                // Update the ingredient and expiration date in Firestore
                 await _updateIngredient(index, newIngredient, formattedDate);
 
-                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop();
               },
-              child: Text('Save'),
+              child: Text('save', style: GoogleFonts.poppins(color: Colors.white)),
             ),
           ],
         );
@@ -353,16 +396,14 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     );
   }
 
-
-
-  // Modify _deleteIngredient to also update Firestore when an ingredient is deleted
   Future<void> _deleteIngredient(int index) async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
     await FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('ingredients')
-        .doc(ingredients[index].toLowerCase()) // Using lowercase ingredient name for doc ID
+        .doc(ingredients[index]
+        .toLowerCase())
         .delete();
 
     setState(() {
@@ -371,23 +412,25 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
       selectedIngredients.removeAt(index);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ingredient deleted')));
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ingredient deleted')));
   }
 
-  Future<void> _updateIngredient(int index, String newIngredient, String newExpirationDate) async {
-    // Update the local lists with the new values
+  Future<void> _updateIngredient(int index, String newIngredient, Timestamp newExpirationDate) async {
+    // update the local lists with the new values
     setState(() {
       ingredients[index] = newIngredient;
-      expirationDates[index] = newExpirationDate;
+      expirationDates[index] = newExpirationDate.toString();
     });
 
-    // Firebase update logic (make sure it updates both name and expiration date)
+    // firebase update logic (make sure it updates both name and expiration date)
     String userId = FirebaseAuth.instance.currentUser!.uid;
     await FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('ingredients')
-        .doc(ingredients[index].toLowerCase()) // Using lowercase ingredient name for doc ID
+        .doc(ingredients[index]
+        .toLowerCase()) // using lowercase ingredient name for doc ID for consistency
         .update({
       'expiration_date': newExpirationDate,
     });
@@ -398,7 +441,6 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // — your existing scaffold stays exactly the same —
         Scaffold(
           appBar: AppBar(
             title: Padding(
@@ -407,7 +449,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "y o u r   f r i d g e",
+                    "y o u r   i n g r e d i e n t s",
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
@@ -443,19 +485,23 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
                             ? Column(
                           children: [
                             _buildCardWrapper(
-                              _buildCheckboxList(ingredients, selectedIngredients, expirationDates),
+                              _buildCheckboxList(
+                                  ingredients, selectedIngredients,
+                                  expirationDates),
                             ),
                           ],
                         ) : Column(
                           children: [
-                            _buildSectionTitle('select ingredients'), // display the section title only if there are ingredients
+                            _buildSectionTitle('select ingredients'),
+                            // display the section title only if there are ingredients
                             _buildCardWrapper(
-                              _buildCheckboxList(ingredients, selectedIngredients, expirationDates),
+                              _buildCheckboxList(
+                                  ingredients, selectedIngredients,
+                                  expirationDates),
                             ),
                           ],
                         ),
                         const SizedBox(height: 20),
-                        // we’ve removed the old in‐page loader; the overlay will handle it
                       ],
                     ),
                   ),
@@ -478,7 +524,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
           ),
         ),
 
-        // — overlay barrier + spinner when loading —
+        // overlay barrier & spinner when loading
         if (isLoading) ...[
           // prevent any interaction & dim background
           ModalBarrier(
@@ -509,7 +555,9 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
       padding: const EdgeInsets.only(bottom: 10.0),
       child: Text(
         title,
-        style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFbc6c25)),
+        style: GoogleFonts.poppins(fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFFbc6c25)),
       ),
     );
   }
@@ -518,7 +566,7 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     return ingredients.isEmpty
         ? Column(
       children: [
-        Image.asset('assets/images/cute_fridge.png', height: 200), // use our personal one
+        Image.asset('assets/images/cute_fridge.png', height: 200),
         SizedBox(height: 20),
         Text(
           "you currently have no ingredients in your fridge. when you add ingredients, they will appear on this page.",
@@ -526,14 +574,15 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
           textAlign: TextAlign.center,
         ),
         SizedBox(width: double.infinity,
-            child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF606C38)),
-            onPressed: inputIngredients,
-            child: const Text(
-            'add ingredients now!',
-            style: TextStyle(color: Colors.white),
-            )),
-          ),
+          child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF606C38)),
+              onPressed: inputIngredients,
+              child: const Text(
+                'add ingredients now!',
+                style: TextStyle(color: Colors.white),
+              )),
+        ),
       ],
     )
         : child; // return the usual card wrapper if ingredients are present
@@ -543,7 +592,95 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
     return child; // return the usual card wrapper if ingredients are present
   }
 
-  Widget _buildCheckboxList(List<String> items, List<bool> selections, List<String> expirationDates) {
+  Widget _buildCheckboxList(List<String> items, List<bool> selections,
+      List<String> expirationDates) {
+    // first, parse expiration dates and sort
+    List<Map<String, dynamic>> sortedItems = List.generate(items.length, (index) {
+      return {
+        'item': items[index],
+        'selected': selections[index],
+        'expiration': expirationDates[index],
+        'expirationDateTime': DateFormat('MMM dd, yyyy').parse(expirationDates[index]),
+        'index': index,
+      };
+    });
+
+    sortedItems.sort((a, b) => a['expirationDateTime'].compareTo(b['expirationDateTime']));
+
+    // split into expiring soon and normal
+    List<Map<String, dynamic>> expiringSoonItems = [];
+    List<Map<String, dynamic>> normalItems = [];
+
+    for (var item in sortedItems) {
+      bool isExpiringSoon = item['expirationDateTime'].difference(DateTime.now()).inDays <= 7;
+      if (isExpiringSoon) {
+        expiringSoonItems.add(item);
+      } else {
+        normalItems.add(item);
+      }
+    }
+
+    // helper function to build each section
+    List<Widget> buildItemList(List<Map<String, dynamic>> items) {
+      return List.generate(items.length, (i) {
+        var item = items[i];
+        bool isExpiringSoon = item['expirationDateTime'].difference(DateTime.now()).inDays <= 7;
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: item['selected'],
+                onChanged: (bool? value) {
+                  if (!mounted) return;
+                  setState(() {
+                    selections[item['index']] = value!;
+                  });
+                },
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['item'],
+                      style: GoogleFonts.poppins(fontSize: 16),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      item['expiration'],
+                      style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      _showEditDialog(item['item'], item['expiration'], item['index']);
+                    },
+                    child: Text("edit", style: TextStyle(color: Colors.blue)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      _deleteIngredient(item['index']);
+                    },
+                    child: Text("delete", style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      });
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -551,48 +688,49 @@ class _GenerateRecipesState extends State<GenerateRecipes> {
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
       ),
       child: Column(
-        children: List.generate(items.length, (index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        items[index], // Ingredient name
-                        style: GoogleFonts.poppins(fontSize: 16),
-                        overflow: TextOverflow.ellipsis, // Prevent overflow
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        expirationDates[index], // Expiration date
-                        style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54),
-                        overflow: TextOverflow.ellipsis, // Prevent overflow
-                      ),
-                    ],
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // expiring soon section with red border
+          if (expiringSoonItems.isNotEmpty) ...[
+            Container(
+              margin: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.red, width: 2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Text(
+                      "expiring soon",
+                      style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red),
+                    ),
                   ),
-                ),
-                // Edit Button
-                TextButton(
-                  onPressed: () {
-                    _showEditDialog(items[index], expirationDates[index], index); // Pass expiration date too
-                  },
-                  child: Text("Edit", style: TextStyle(color: Colors.blue)),
-                ),
-                // Delete Button
-                TextButton(
-                  onPressed: () {
-                    _deleteIngredient(index); // Call delete function
-                  },
-                  child: Text("Delete", style: TextStyle(color: Colors.red)),
-                ),
-              ],
+                  ...buildItemList(expiringSoonItems),
+                ],
+              ),
             ),
-          );
-        }),
+            Divider(),
+          ],
+
+          // normal items
+          if (normalItems.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Text(
+                "all ingredients",
+                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ...buildItemList(normalItems),
+          ],
+        ],
       ),
     );
   }

@@ -14,12 +14,12 @@ class SustainabilityScanner extends StatefulWidget {
 }
 
 class _SustainabilityScannerState extends State<SustainabilityScanner> {
-  final String apiKey = 'AIzaSyATi56IvBnjGbZ5qhFOLtAPl7mf5owwrdI';
+  final String apiKey = 'API_KEY';
   late final GenerativeModel _model;
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _textController = TextEditingController();
-  final TextEditingController _companyController = TextEditingController();  // Controller for the company/website
+  final TextEditingController _companyController = TextEditingController();
   bool extracting = false;
 
   @override
@@ -71,13 +71,11 @@ and include it as part of the extracted information. Ensure accuracy and logic i
       final response = await _model.generateContent(content);
       String extractedText = response.text ?? 'no text extracted.';
 
-      // Clean the extracted text before further processing
+      // clean the extracted text before further processing for consistency
       extractedText = _cleanText(extractedText);
 
-      // Ask the AI to extract company/website information
+      // making sure AI looks at company/source
       String companyOrWebsite = await _extractCompanyFromAI(extractedText);
-
-      // Update the UI with the extracted information
       setState(() {
         _textController.text = extractedText;
         _companyController.text = companyOrWebsite;
@@ -110,10 +108,9 @@ and include it as part of the extracted information. Ensure accuracy and logic i
 
   // ensure extracted text is properly formatted
   String _cleanText(String text) {
-    // Remove asterisks and other unwanted characters but keep commas, colons, and periods
-    text = text.replaceAll(RegExp(r'[*]'), '');  // Remove asterisks
-    text = text.replaceAll(RegExp(r'[^\w\s,.:;]'), '');  // Keep only letters, numbers, spaces, and punctuation
-    text = text.toLowerCase().trim();  // Convert everything to lowercase and trim excess spaces
+    text = text.replaceAll(RegExp(r'[*]'), '');
+    text = text.replaceAll(RegExp(r'[^\w\s,.:;]'), '');
+    text = text.toLowerCase().trim();
     return text;
   }
 
@@ -150,7 +147,6 @@ and include it as part of the extracted information. Ensure accuracy and logic i
                 ),
               ),
               const SizedBox(height: 20),
-              // New TextField for company/website
               TextField(
                 controller: _companyController,
                 decoration: InputDecoration(

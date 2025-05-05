@@ -1,5 +1,7 @@
 import 'package:ai_recipe_generation/analyze.dart';
 import 'package:ai_recipe_generation/eco-scan.dart';
+import 'package:ai_recipe_generation/report.dart';
+import 'package:ai_recipe_generation/shopping_list.dart';
 import 'package:ai_recipe_generation/your_fridge.dart';
 import 'package:ai_recipe_generation/navigation/bottom_nav.dart';
 import 'package:ai_recipe_generation/recipe.dart';
@@ -36,11 +38,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final List<IconData> _icons = [
     Icons.kitchen,
     Icons.compost,
+    Icons.checklist,
+    Icons.bug_report
   ];
 
   final List<String> _labels = [
     'fridge',
     'scan',
+    'list',
+    'report',
   ];
 
   List<Widget> get _pages => [
@@ -59,6 +65,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         });
       },
     ),
+    ShoppingListPage(),
+    ReportIssuePage(),
     GeminiImageProcessor(),
   ];
 
@@ -86,7 +94,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     Widget currentPage;
 
     if (extractedIngredients != null) {
-      print("Extracted: $extractedIngredients");
+      print("extracted: $extractedIngredients");
       currentPage = SustainabilityAnalysisPage(
         ingredients: extractedIngredients!,
         companyOrWebsite: company!,
@@ -141,7 +149,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         labels: _labels,
         numberOfTabs: _icons.length,
         icons: _icons,
-        selectedIndex: _selectedIndex, // <- Pass the selected index here if BottomNavigation supports it
+        selectedIndex: _selectedIndex,
       ),
     );
   }

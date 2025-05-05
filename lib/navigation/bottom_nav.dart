@@ -24,7 +24,7 @@ class BottomNavigation extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
         child: GNav(
-          selectedIndex: selectedIndex, // <- now using the selectedIndex
+          selectedIndex: selectedIndex,
           backgroundColor: const Color(0xFF283618),
           activeColor: const Color(0xFFfefae0),
           color: const Color(0xFFfefae0),
@@ -33,7 +33,7 @@ class BottomNavigation extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           onTabChange: (value) {
             if (onTabChange != null) {
-              print("Tab index changed: $value");
+              print("tab index changed: $value");
               onTabChange!(value);
             }
           },
