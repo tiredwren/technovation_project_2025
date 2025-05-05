@@ -17,7 +17,7 @@ class SustainabilityAnalysisPage extends StatefulWidget {
 }
 
 class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage> {
-  final String apiKey = 'AIzaSyATi56IvBnjGbZ5qhFOLtAPl7mf5owwrdI';
+  final String apiKey = 'API_KEY';
   String? result;
   bool isLoading = false;
   int sustainabilityScore = 50;
@@ -43,7 +43,7 @@ class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage>
             {
               "text": """
               Analyze the following list of food ingredients for sustainability based on:
-              - Local sourcing (locally sourced ingredients are preferred)
+              - Local sourcing (locally sourced ingredients are preferred, but they don't have to be hyper-local. Same state is good.)
               - Fair labor practices (ingredients with Fair Trade, B-Corp certifications, etc.)
               - Ecological impact (organic, regenerative agriculture)
               - Humane sourcing (ethical animal welfare practices for meat, dairy, eggs)
@@ -55,8 +55,10 @@ class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage>
               Fair: Evaluate whether ingredients have certifications like Fair Trade, Rainforest Alliance, or B-Corp, or if there are known labor issues in the sourcing process.
               Ecological: Ingredients grown or produced using sustainable or organic farming methods. Check if the ingredient is from regenerative agriculture.
               Humane: For animal-based ingredients, check if they are ethically sourced (e.g., pasture-raised, free-range).
+              BE HONEST, BUT BE NICE. DON'T SAY EVERYTHING IS UNSUSTAINABLE, HIGHLIGHT THE SUSTAINABLE ASPECTS OF A PRODUCT. This doesn't necessarily increase the score, but the descriptions should be nice.
+              Still provide a description even if the category does not apply. Explain why it does not apply.
               
-              also provide a score_label for each category. "good" if it is sustainable, "meh" if it is ok, "bad" if it is unsustainable, and "n/a" if it is not applicable
+              Also provide a score_label for each category. "good" if it is sustainable, "meh" if it is ok, "bad" if it is unsustainable, and "n/a" if it is not applicable
               
               Ingredients: $ingredients
               Company: $company
@@ -65,10 +67,10 @@ class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage>
               {
                 "score": 85,
                 "breakdown": [
-                  { "title": "Local", "description": "Sourced locally from farms in the region." },
-                  { "title": "Fair", "description": "Fair Trade certified." },
-                  { "title": "Ecological", "description": "Produced using organic farming methods." },
-                  { "title": "Humane", "description": "Ethically sourced, pasture-raised." }
+                  { "title": "Local", "description": "Sourced locally from farms in the region.", "score_label": "good" },
+                  { "title": "Fair", "description": "Fair Trade certified.", "score_label": "good" },
+                  { "title": "Ecological", "description": "Produced using organic farming methods.", "score_label": "good" },
+                  { "title": "Humane", "description": "Ethically sourced, pasture-raised.", "score_label": "good" }
                 ]
               }
             """
@@ -91,11 +93,11 @@ class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage>
         if (data.containsKey("candidates")) {
           String responseText = data["candidates"][0]["content"]["parts"][0]["text"];
 
-          // Extract the JSON portion using regex
+          // extracting the JSON portion using regex
           RegExp jsonRegex = RegExp(r'\{[\s\S]*\}', multiLine: true);
           Match? jsonMatch = jsonRegex.firstMatch(responseText);
           if (jsonMatch == null) {
-            throw FormatException("No valid JSON found in response.");
+            throw FormatException("valid json was not found in the response.");
           }
 
           String jsonString = jsonMatch.group(0)!;
@@ -108,11 +110,12 @@ class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage>
                 parsedData["breakdown"].map((item) => {
                   "title": item["title"].toString(),
                   "description": item["description"].toString(),
+                  "score_label": item["score_label"].toString()
                 }));
             isLoading = false;
           });
         } else {
-          throw FormatException("Unexpected API response format.");
+          throw FormatException("unexpected api response format.");
         }
       } else {
         throw Exception("API Error: ${response.statusCode} - ${response.body}");
@@ -127,10 +130,11 @@ class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage>
   }
 
   Color _getOutlineColor(String label) {
+    print(label);
     switch (label) {
       case 'good':
         return Colors.green;
-      case 'neutral':
+      case 'meh':
         return Colors.orange;
       case 'bad':
         return Colors.red;
@@ -244,6 +248,16 @@ class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage>
             icon: Icon(Icons.info_outline, color: Color(0xFF283618)),
             onPressed: _showInfoDialog,
           ),
+          IconButton(
+            icon: Icon(Icons.flag, color: Color(0xFF283618)),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HomePage(initialTab: 3)),
+                    (route) => false,
+              );
+            },
+          ),
         ],
       ),
       body: Padding(
@@ -288,7 +302,7 @@ class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage>
                 const SizedBox(height: 10),
                 Center(
                   child: Text(
-                    "Sustainability Score: $sustainabilityScore",
+                    "sustainability score: $sustainabilityScore",
                     style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.bold),
                   ),
@@ -309,7 +323,7 @@ class _SustainabilityAnalysisPageState extends State<SustainabilityAnalysisPage>
                     color: Colors.lightGreen[100],
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _getOutlineColor(section['title']!),
+                      color: _getOutlineColor(section['score_label']!),
                       width: 2.0,
                     ),
                   ),

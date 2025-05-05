@@ -33,7 +33,7 @@ class _IngredientsPageState extends State<IngredientsPage> {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No ingredients found."));
+            return const Center(child: Text("no ingredients found."));
           }
           final docs = snapshot.data!.docs;
           List<String> allIngredients = [];

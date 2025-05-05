@@ -13,7 +13,7 @@ class GeminiImageProcessor extends StatefulWidget {
 }
 
 class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
-  final String apiKey = 'AIzaSyATi56IvBnjGbZ5qhFOLtAPl7mf5owwrdI';
+  final String apiKey = 'API_KEY';
   late final GenerativeModel _model;
   File? _imageFile;
   bool _isTextNotEmpty = false;
@@ -56,7 +56,10 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
         Content.multi([
           TextPart("""Extract only the ingredients from this recipe image. 
           Do not include instructions or non-food items. Format the ingredients 
-          as a comma-separated list."""),
+          as a comma-separated list.
+          If something in this list is not an ingredient, do not include it. 
+          Also, figure out what abbreviations mean, because this is a recipe
+          so there will be common store jargon. For instance, "org" means organic, etc"""),
           DataPart('image/jpeg', imageBytes),
         ])
       ];
@@ -102,11 +105,11 @@ class _GeminiImageProcessorState extends State<GeminiImageProcessor> {
           initialDate: DateTime.now(),
           firstDate: DateTime.now().subtract(const Duration(days: 1)),
           lastDate: DateTime.now().add(const Duration(days: 365)),
-          helpText: 'Select expiration date for "$ingredient"',
+          helpText: 'select an expiration date for "$ingredient"',
         );
 
         if (expirationDate == null) {
-          // Use AI to estimate expiration date
+          // use AI to estimate expiration date
           expirationDate = await _estimateExpirationDate(ingredient);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('no date selected for "$ingredient" – using AI estimate.')),
